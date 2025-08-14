@@ -183,6 +183,7 @@ export async function PUT(request: NextRequest) {
 
     // Buscar o agendamento original para manter dados não editados
     const originalBooking = mockBookings.find(b => b.id === bookingId)
+    console.log('📋 Agendamento original:', originalBooking)
     
     const updatedBooking = {
       ...originalBooking, // Manter todos os dados originais
@@ -195,11 +196,15 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date().toISOString()
     }
 
+    console.log('📝 Dados recebidos:', { date, time, people, menuId, notes })
+    console.log('🔄 Agendamento atualizado:', updatedBooking)
+
     // Atualizar os dados mock locais para persistir as mudanças
     const bookingIndex = mockBookings.findIndex(b => b.id === bookingId)
     if (bookingIndex !== -1) {
       mockBookings[bookingIndex] = updatedBooking
       console.log('💾 Dados mock atualizados localmente')
+      console.log('📋 Mock atualizado:', mockBookings[bookingIndex])
     }
 
     return NextResponse.json({

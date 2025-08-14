@@ -85,6 +85,10 @@ export default function ClientBookingsPage() {
   })
 
   const handleViewDetails = (booking: Booking) => {
+    console.log('👁️ Abrindo detalhes do agendamento:', booking)
+    console.log('📅 Data do agendamento:', booking.date)
+    console.log('⏰ Horário do agendamento:', booking.time)
+    
     setSelectedBooking(booking)
     setEditData({
       date: booking.date, // Usar a data real do agendamento
@@ -151,11 +155,15 @@ export default function ClientBookingsPage() {
           }
 
           console.log('🔄 Dados atualizados:', updatedBooking)
+          console.log('📅 Data original:', selectedBooking.date)
+          console.log('📅 Data editada:', editData.date)
+          console.log('📅 Data final:', updatedBooking.date)
 
           // Atualizar a lista de agendamentos
           setBookings(prev => {
             const newBookings = prev.map(b => b.id === selectedBooking.id ? updatedBooking : b)
             console.log('📋 Lista atualizada:', newBookings)
+            console.log('📋 Agendamento encontrado na lista:', newBookings.find(b => b.id === selectedBooking.id))
             return newBookings
           })
           
@@ -164,6 +172,12 @@ export default function ClientBookingsPage() {
           
           // Fechar modo de edição
           setIsEditing(false)
+          
+          // Forçar re-renderização
+          setTimeout(() => {
+            console.log('🔄 Forçando re-renderização...')
+            setBookings(prev => [...prev])
+          }, 100)
 
           toast({
             title: "Agendamento atualizado!",
