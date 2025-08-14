@@ -6,8 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -15,7 +15,7 @@ model User {
   email     String   @unique
   password  String
   name      String
-  role      UserRole @default(CLIENT)
+  role      String   @default("CLIENT")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -31,7 +31,7 @@ model User {
 model ClientProfile {
   id                    String   @id @default(cuid())
   userId                String   @unique
-  dietaryPreferences   String[]
+  dietaryPreferences   String
   address              String
   phone                String
   createdAt            DateTime @default(now())
@@ -39,7 +39,6 @@ model ClientProfile {
 
   // Relacionamentos
   user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookings Booking[]
 
   @@map("client_profiles")
 }
@@ -47,7 +46,7 @@ model ClientProfile {
 model ChefProfile {
   id          String   @id @default(cuid())
   userId      String   @unique
-  specialties String[]
+  specialties String
   experience  String
   bio         String?
   hourlyRate  Float
@@ -57,7 +56,6 @@ model ChefProfile {
 
   // Relacionamentos
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bookings  Booking[]
 
   @@map("chef_profiles")
 }
@@ -94,7 +92,7 @@ model Menu {
 }
 
 model Booking {
-  id          String        @id @default(cuid())
+  id          String   @id @default(cuid())
   clientId    String
   chefId      String
   planId      String
@@ -103,10 +101,10 @@ model Booking {
   time        String
   peopleCount Int
   totalPrice  Float
-  status      BookingStatus @default(PENDING)
+  status      String   @default("PENDING")
   notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   // Relacionamentos
   client User @relation(fields: [clientId], references: [id], onDelete: Cascade)
@@ -117,15 +115,4 @@ model Booking {
   @@map("bookings")
 }
 
-enum UserRole {
-  CLIENT
-  CHEF
-  ADMIN
-}
 
-enum BookingStatus {
-  PENDING
-  CONFIRMED
-  CANCELLED
-  COMPLETED
-}

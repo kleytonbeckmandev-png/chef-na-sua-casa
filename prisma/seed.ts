@@ -32,7 +32,7 @@ async function main() {
       role: 'CLIENT',
       clientProfile: {
         create: {
-          dietaryPreferences: ['Vegetariano'],
+          dietaryPreferences: 'Vegetariano',
           address: 'Rua das Flores, 123 - São Paulo, SP',
           phone: '(11) 99999-9999',
         },
@@ -51,7 +51,7 @@ async function main() {
       role: 'CHEF',
       chefProfile: {
         create: {
-          specialties: ['Culinária Italiana', 'Culinária Francesa'],
+          specialties: 'Culinária Italiana, Francesa',
           experience: '8 anos',
           bio: 'Chef profissional com experiência em restaurantes renomados e eventos privados.',
           hourlyRate: 80.0,
@@ -64,9 +64,10 @@ async function main() {
   // Criar planos
   const plans = await Promise.all([
     prisma.plan.upsert({
-      where: { name: 'Avulso' },
+      where: { id: 'plan-avulso' },
       update: {},
       create: {
+        id: 'plan-avulso',
         name: 'Avulso',
         description: '1 refeição personalizada',
         duration: 1,
@@ -75,9 +76,10 @@ async function main() {
       },
     }),
     prisma.plan.upsert({
-      where: { name: 'Mensal' },
+      where: { id: 'plan-mensal' },
       update: {},
       create: {
+        id: 'plan-mensal',
         name: 'Mensal',
         description: '4 refeições por mês',
         duration: 30,
@@ -86,9 +88,10 @@ async function main() {
       },
     }),
     prisma.plan.upsert({
-      where: { name: 'Trimestral' },
+      where: { id: 'plan-trimestral' },
       update: {},
       create: {
+        id: 'plan-trimestral',
         name: 'Trimestral',
         description: '12 refeições por trimestre',
         duration: 90,
@@ -101,9 +104,10 @@ async function main() {
   // Criar cardápios
   const menus = await Promise.all([
     prisma.menu.upsert({
-      where: { name: 'Culinária Italiana' },
+      where: { id: 'menu-italiana' },
       update: {},
       create: {
+        id: 'menu-italiana',
         name: 'Culinária Italiana',
         description: 'Massas, risotos e pratos tradicionais italianos',
         price: 50.0,
@@ -111,9 +115,10 @@ async function main() {
       },
     }),
     prisma.menu.upsert({
-      where: { name: 'Culinária Francesa' },
+      where: { id: 'menu-francesa' },
       update: {},
       create: {
+        id: 'menu-francesa',
         name: 'Culinária Francesa',
         description: 'Pratos sofisticados da gastronomia francesa',
         price: 70.0,
@@ -121,9 +126,10 @@ async function main() {
       },
     }),
     prisma.menu.upsert({
-      where: { name: 'Culinária Brasileira' },
+      where: { id: 'menu-brasileira' },
       update: {},
       create: {
+        id: 'menu-brasileira',
         name: 'Culinária Brasileira',
         description: 'Feijoada, churrasco e pratos regionais',
         price: 45.0,
@@ -131,9 +137,10 @@ async function main() {
       },
     }),
     prisma.menu.upsert({
-      where: { name: 'Culinária Asiática' },
+      where: { id: 'menu-asiatica' },
       update: {},
       create: {
+        id: 'menu-asiatica',
         name: 'Culinária Asiática',
         description: 'Sushi, pad thai e pratos orientais',
         price: 60.0,
@@ -141,9 +148,10 @@ async function main() {
       },
     }),
     prisma.menu.upsert({
-      where: { name: 'Culinária Vegetariana' },
+      where: { id: 'menu-vegetariana' },
       update: {},
       create: {
+        id: 'menu-vegetariana',
         name: 'Culinária Vegetariana',
         description: 'Pratos vegetarianos e veganos',
         price: 40.0,
@@ -151,9 +159,10 @@ async function main() {
       },
     }),
     prisma.menu.upsert({
-      where: { name: 'Doces e Sobremesas' },
+      where: { id: 'menu-doces' },
       update: {},
       create: {
+        id: 'menu-doces',
         name: 'Doces e Sobremesas',
         description: 'Bolos, tortas e sobremesas especiais',
         price: 35.0,
