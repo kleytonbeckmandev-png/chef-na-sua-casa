@@ -49,13 +49,19 @@ export default function ClientProfilePage() {
         const apiProfile = data.profile
         
         setProfile(apiProfile)
-        setFormData({
+        console.log('🔄 Carregando dados da API:', apiProfile)
+        console.log('🔄 Nome da sessão:', session?.user?.name)
+        
+        const newFormData = {
           name: session?.user?.name || '',
           email: session?.user?.email || '',
           phone: apiProfile.phone,
           address: apiProfile.address,
           dietaryPreferences: apiProfile.dietaryPreferences
-        })
+        }
+        
+        console.log('🔄 Novo formData:', newFormData)
+        setFormData(newFormData)
       } else {
         // Fallback para dados mock se a API falhar
         const mockProfile: ClientProfile = {
@@ -89,6 +95,8 @@ export default function ClientProfilePage() {
     try {
       console.log('🚀 Iniciando salvamento do perfil...')
       console.log('📝 Dados do formulário:', formData)
+      console.log('📝 Nome atual:', formData.name)
+      console.log('📝 Nome da sessão:', session?.user?.name)
       
       const requestBody = {
         name: formData.name,
@@ -98,6 +106,7 @@ export default function ClientProfilePage() {
       }
       
       console.log('📤 Dados sendo enviados para API:', requestBody)
+      console.log('📤 JSON stringify:', JSON.stringify(requestBody))
       
       // Chamar API para atualizar perfil
       const response = await fetch('/api/client/profile', {

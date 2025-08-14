@@ -44,9 +44,9 @@ export async function PUT(request: NextRequest) {
     console.log('  - address:', address, 'type:', typeof address, 'length:', address?.length)
     console.log('  - dietaryPreferences:', dietaryPreferences, 'type:', typeof dietaryPreferences, 'length:', dietaryPreferences?.length)
 
-    // Validação mais flexível - permitir campos vazios por enquanto
-    if (!name) {
-      console.log('❌ Nome é obrigatório')
+    // Validação mínima - apenas verificar se o nome não é undefined/null
+    if (name === undefined || name === null) {
+      console.log('❌ Nome é undefined/null')
       return NextResponse.json(
         { message: 'Nome é obrigatório' },
         { status: 400 }
@@ -87,9 +87,9 @@ export async function PUT(request: NextRequest) {
             userId: (session.user as any).id
           },
           data: {
-            phone: phone || existingProfile.phone,
-            address: address || existingProfile.address,
-            dietaryPreferences: dietaryPreferences || existingProfile.dietaryPreferences,
+            phone: phone !== undefined ? phone : existingProfile.phone,
+            address: address !== undefined ? address : existingProfile.address,
+            dietaryPreferences: dietaryPreferences !== undefined ? dietaryPreferences : existingProfile.dietaryPreferences,
             updatedAt: new Date()
           }
         })
