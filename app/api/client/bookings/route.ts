@@ -3,6 +3,56 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+// Dados mock para simulação
+const mockBookings = [
+  {
+    id: '1',
+    title: 'Culinária Italiana',
+    status: 'CONFIRMED',
+    date: '2024-01-14',
+    time: '19:00',
+    people: 4,
+    chef: 'Chef: Maria Costa',
+    chefId: 'chef-1',
+    notes: 'Cliente prefere massas sem glúten',
+    price: 200.00,
+    plan: 'Avulso'
+  },
+  {
+    id: '2',
+    title: 'Culinária Francesa',
+    status: 'PENDING',
+    date: '2024-01-21',
+    time: '18:00',
+    people: 2,
+    chef: 'Chef: Maria Costa',
+    chefId: 'chef-1',
+    notes: 'Aniversário de casamento',
+    price: 140.00,
+    plan: 'Mensal'
+  },
+  {
+    id: '3',
+    title: 'Culinária Brasileira',
+    status: 'PENDING',
+    date: '2025-10-24',
+    time: '22:01',
+    people: 20,
+    chef: 'Chef: Maria Costa',
+    chefId: 'chef-1',
+    notes: 'Aniversário de casamento 50 anos',
+    price: 140.00,
+    plan: 'Mensal'
+  }
+]
+
+const mockMenus = [
+  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos' },
+  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas' },
+  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional' },
+  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais' }
+]
+
 // Função para verificar disponibilidade do chef
 function checkChefAvailability(chefId: string, date: string, time: string, excludeBookingId?: string) {
   // TEMPORARIAMENTE: Simular verificação de disponibilidade
@@ -56,49 +106,6 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando GET /api/client/bookings')
     
-    // TEMPORARIAMENTE: Retornar dados mock até o banco estar configurado
-    const mockBookings = [
-      {
-        id: '1',
-        title: 'Culinária Italiana',
-        status: 'CONFIRMED',
-        date: '2024-01-14',
-        time: '19:00',
-        people: 4,
-        chef: 'Chef: Maria Costa',
-        chefId: 'chef-1',
-        notes: 'Cliente prefere massas sem glúten',
-        price: 200.00,
-        plan: 'Avulso'
-      },
-      {
-        id: '2',
-        title: 'Culinária Francesa',
-        status: 'PENDING',
-        date: '2024-01-21',
-        time: '18:00',
-        people: 2,
-        chef: 'Chef: Maria Costa',
-        chefId: 'chef-1',
-        notes: 'Aniversário de casamento',
-        price: 140.00,
-        plan: 'Mensal'
-      },
-      {
-        id: '3',
-        title: 'Culinária Brasileira',
-        status: 'PENDING',
-        date: '2025-10-24',
-        time: '22:01',
-        people: 20,
-        chef: 'Chef: Maria Costa',
-        chefId: 'chef-1',
-        notes: 'Aniversário de casamento 50 anos',
-        price: 140.00,
-        plan: 'Mensal'
-      }
-    ]
-
     console.log('✅ Retornando agendamentos mock:', mockBookings.length)
 
     return NextResponse.json({
@@ -174,14 +181,25 @@ export async function PUT(request: NextRequest) {
     console.log('✅ Validações de data e disponibilidade aprovadas')
     console.log('✅ Simulando atualização bem-sucedida')
 
+    // Buscar o agendamento original para manter dados não editados
+    const originalBooking = mockBookings.find(b => b.id === bookingId)
+    
     const updatedBooking = {
+      ...originalBooking, // Manter todos os dados originais
       id: bookingId,
       date: date,
       time: time,
       people: people,
-      menuId: menuId,
+      title: mockMenus.find(m => m.id === menuId)?.name || originalBooking?.title || 'Cardápio Selecionado',
       notes: notes || '', // Incluir observações
       updatedAt: new Date().toISOString()
+    }
+
+    // Atualizar os dados mock locais para persistir as mudanças
+    const bookingIndex = mockBookings.findIndex(b => b.id === bookingId)
+    if (bookingIndex !== -1) {
+      mockBookings[bookingIndex] = updatedBooking
+      console.log('💾 Dados mock atualizados localmente')
     }
 
     return NextResponse.json({

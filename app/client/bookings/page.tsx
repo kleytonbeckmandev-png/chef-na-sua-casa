@@ -142,6 +142,7 @@ export default function ClientBookingsPage() {
           // Atualizar localmente com dados da API
           const updatedBooking = {
             ...selectedBooking,
+            ...data.booking, // Usar todos os dados retornados pela API
             date: editData.date,
             time: editData.time,
             people: editData.people,
@@ -149,8 +150,19 @@ export default function ClientBookingsPage() {
             notes: editData.notes // Incluir observações atualizadas
           }
 
-          setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b))
+          console.log('🔄 Dados atualizados:', updatedBooking)
+
+          // Atualizar a lista de agendamentos
+          setBookings(prev => {
+            const newBookings = prev.map(b => b.id === selectedBooking.id ? updatedBooking : b)
+            console.log('📋 Lista atualizada:', newBookings)
+            return newBookings
+          })
+          
+          // Atualizar o agendamento selecionado
           setSelectedBooking(updatedBooking)
+          
+          // Fechar modo de edição
           setIsEditing(false)
 
           toast({
