@@ -68,7 +68,8 @@ export default function ClientBookingsPage() {
     date: new Date().toISOString().split('T')[0], // Data atual por padrão
     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Hora atual por padrão
     people: 1,
-    menuId: ''
+    menuId: '',
+    notes: '' // Campo para observações
   })
 
   const handleViewDetails = (booking: Booking) => {
@@ -77,7 +78,8 @@ export default function ClientBookingsPage() {
       date: new Date().toISOString().split('T')[0], // Sempre data atual
       time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
       people: booking.people,
-      menuId: mockMenus.find(m => m.name === booking.title)?.id || ''
+      menuId: mockMenus.find(m => m.name === booking.title)?.id || '',
+      notes: booking.notes || '' // Incluir observações do agendamento
     })
     setIsEditing(false)
   }
@@ -130,7 +132,8 @@ export default function ClientBookingsPage() {
           date: editData.date,
           time: editData.time,
           people: editData.people,
-          menuId: editData.menuId
+          menuId: editData.menuId,
+          notes: editData.notes // Incluir observações
         }),
       })
 
@@ -144,7 +147,8 @@ export default function ClientBookingsPage() {
             date: editData.date,
             time: editData.time,
             people: editData.people,
-            title: mockMenus.find(m => m.id === editData.menuId)?.name || selectedBooking.title
+            title: mockMenus.find(m => m.id === editData.menuId)?.name || selectedBooking.title,
+            notes: editData.notes // Incluir observações atualizadas
           }
 
           setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b))
@@ -178,7 +182,8 @@ export default function ClientBookingsPage() {
         date: new Date().toISOString().split('T')[0], // Sempre data atual
         time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
         people: selectedBooking.people,
-        menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || ''
+        menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || '',
+        notes: selectedBooking.notes || '' // Incluir observações do agendamento
       })
     }
     setIsEditing(false)
@@ -500,11 +505,28 @@ export default function ClientBookingsPage() {
                           )}
                         </div>
 
-                        {/* Observações */}
-                        <div className="p-4 bg-gray-50 rounded-lg">
-                          <h3 className="font-semibold mb-2">Observações</h3>
-                          <p className="text-gray-700">{booking.notes || 'Nenhuma observação adicional.'}</p>
-                        </div>
+                                                 {/* Observações */}
+                         <div className="p-4 bg-gray-50 rounded-lg">
+                           <h3 className="font-semibold mb-2">Observações</h3>
+                           {!isEditing ? (
+                             <p className="text-gray-700">{editData.notes || 'Nenhuma observação adicional.'}</p>
+                           ) : (
+                             <div>
+                               <Label htmlFor="notes">Observações</Label>
+                               <textarea
+                                 id="notes"
+                                 value={editData.notes}
+                                 onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                                 placeholder="Ex: Aniversário de casamento, preferências especiais, etc."
+                                 className="w-full mt-1 p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-orange-500 focus:border-orange-500 resize-none"
+                                 rows={3}
+                               />
+                               <p className="text-xs text-gray-500 mt-1">
+                                 Informações adicionais para o chef
+                               </p>
+                             </div>
+                           )}
+                         </div>
                       </div>
                     </DialogContent>
                   </Dialog>

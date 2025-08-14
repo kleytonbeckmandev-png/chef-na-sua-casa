@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log('📝 Body recebido:', body)
     
-    const { bookingId, date, time, people, menuId } = body
+    const { bookingId, date, time, people, menuId, notes } = body
 
     // Validações
     if (!bookingId) {
@@ -114,6 +114,7 @@ export async function PUT(request: NextRequest) {
       time: time,
       people: people,
       menuId: menuId,
+      notes: notes || '', // Incluir observações
       updatedAt: new Date().toISOString()
     }
 
