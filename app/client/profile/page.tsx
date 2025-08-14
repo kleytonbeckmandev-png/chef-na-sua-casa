@@ -87,22 +87,30 @@ export default function ClientProfilePage() {
 
   const handleSave = async () => {
     try {
+      console.log('🚀 Iniciando salvamento do perfil...')
+      console.log('📝 Dados do formulário:', formData)
+      
+      const requestBody = {
+        name: formData.name,
+        phone: formData.phone,
+        address: formData.address,
+        dietaryPreferences: formData.dietaryPreferences,
+      }
+      
+      console.log('📤 Dados sendo enviados para API:', requestBody)
+      
       // Chamar API para atualizar perfil
       const response = await fetch('/api/client/profile', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name,
-          phone: formData.phone,
-          address: formData.address,
-          dietaryPreferences: formData.dietaryPreferences,
-        }),
+        body: JSON.stringify(requestBody),
       })
 
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Resposta da API:', data)
         
         // Atualizar estado local com dados da API
         setProfile(prevProfile => {

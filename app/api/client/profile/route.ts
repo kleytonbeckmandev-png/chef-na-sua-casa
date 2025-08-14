@@ -32,13 +32,26 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     console.log('📝 Body recebido:', body)
+    console.log('📝 Body type:', typeof body)
+    console.log('📝 Body keys:', Object.keys(body))
+    
     const { name, phone, address, dietaryPreferences } = body
 
-    // Validações
+    // Validações com logs detalhados
+    console.log('🔍 Validando campos:')
+    console.log('  - name:', name, 'type:', typeof name, 'length:', name?.length)
+    console.log('  - phone:', phone, 'type:', typeof phone, 'length:', phone?.length)
+    console.log('  - address:', address, 'type:', typeof address, 'length:', address?.length)
+    console.log('  - dietaryPreferences:', dietaryPreferences, 'type:', typeof dietaryPreferences, 'length:', dietaryPreferences?.length)
+
     if (!name || !phone || !address || !dietaryPreferences) {
-      console.log('❌ Campos obrigatórios faltando:', { name, phone, address, dietaryPreferences })
+      console.log('❌ Campos obrigatórios faltando:')
+      console.log('  - name válido:', !!name)
+      console.log('  - phone válido:', !!phone)
+      console.log('  - address válido:', !!address)
+      console.log('  - dietaryPreferences válido:', !!dietaryPreferences)
       return NextResponse.json(
-        { message: 'Todos os campos são obrigatórios' },
+        { message: 'Todos os campos são obrigatórios', details: { name: !!name, phone: !!phone, address: !!address, dietaryPreferences: !!dietaryPreferences } },
         { status: 400 }
       )
     }
