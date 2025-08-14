@@ -44,14 +44,11 @@ export async function PUT(request: NextRequest) {
     console.log('  - address:', address, 'type:', typeof address, 'length:', address?.length)
     console.log('  - dietaryPreferences:', dietaryPreferences, 'type:', typeof dietaryPreferences, 'length:', dietaryPreferences?.length)
 
-    if (!name || !phone || !address || !dietaryPreferences) {
-      console.log('❌ Campos obrigatórios faltando:')
-      console.log('  - name válido:', !!name)
-      console.log('  - phone válido:', !!phone)
-      console.log('  - address válido:', !!address)
-      console.log('  - dietaryPreferences válido:', !!dietaryPreferences)
+    // Validação mais flexível - permitir campos vazios por enquanto
+    if (!name) {
+      console.log('❌ Nome é obrigatório')
       return NextResponse.json(
-        { message: 'Todos os campos são obrigatórios', details: { name: !!name, phone: !!phone, address: !!address, dietaryPreferences: !!dietaryPreferences } },
+        { message: 'Nome é obrigatório' },
         { status: 400 }
       )
     }
@@ -65,57 +62,66 @@ export async function PUT(request: NextRequest) {
       }
     })
 
+    console.log('📄 Perfil existente:', existingProfile ? 'SIM' : 'NÃO')
+
     let updatedProfile
 
-    // Primeiro, atualizar o nome do usuário
-    console.log('👤 Atualizando nome do usuário para:', name)
-    await prisma.user.update({
-      where: {
-        id: (session.user as any).id
-      },
-      data: {
-        name: name
-      }
-    })
-
-    if (existingProfile) {
-      // Atualizar perfil existente
-      console.log('🔄 Atualizando perfil existente')
-      updatedProfile = await prisma.clientProfile.update({
+    try {
+      // Primeiro, atualizar o nome do usuário
+      console.log('👤 Atualizando nome do usuário para:', name)
+      const updatedUser = await prisma.user.update({
         where: {
-          userId: (session.user as any).id
+          id: (session.user as any).id
         },
         data: {
-          phone,
-          address,
-          dietaryPreferences,
-          updatedAt: new Date()
+          name: name
         }
       })
-    } else {
-      // Criar novo perfil
-      console.log('🆕 Criando novo perfil de cliente')
-      updatedProfile = await prisma.clientProfile.create({
-        data: {
-          userId: (session.user as any).id,
-          phone,
-          address,
-          dietaryPreferences,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        }
-      })
-    }
+      console.log('✅ Usuário atualizado:', updatedUser.name)
 
-    console.log('✅ Perfil atualizado com sucesso:', updatedProfile)
-
-    return NextResponse.json({
-      message: 'Perfil atualizado com sucesso',
-      profile: updatedProfile,
-      user: {
-        name: name
+      if (existingProfile) {
+        // Atualizar perfil existente
+        console.log('🔄 Atualizando perfil existente')
+        updatedProfile = await prisma.clientProfile.update({
+          where: {
+            userId: (session.user as any).id
+          },
+          data: {
+            phone: phone || existingProfile.phone,
+            address: address || existingProfile.address,
+            dietaryPreferences: dietaryPreferences || existingProfile.dietaryPreferences,
+            updatedAt: new Date()
+          }
+        })
+      } else {
+        // Criar novo perfil
+        console.log('🆕 Criando novo perfil de cliente')
+        updatedProfile = await prisma.clientProfile.create({
+          data: {
+            userId: (session.user as any).id,
+            phone: phone || '',
+            address: address || '',
+            dietaryPreferences: dietaryPreferences || '',
+            createdAt: new Date(),
+            updatedAt: new Date()
+          }
+        })
       }
-    }, { status: 200 })
+
+      console.log('✅ Perfil atualizado com sucesso:', updatedProfile)
+
+      return NextResponse.json({
+        message: 'Perfil atualizado com sucesso',
+        profile: updatedProfile,
+        user: {
+          name: name
+        }
+      }, { status: 200 })
+
+    } catch (dbError) {
+      console.error('💥 Erro no banco de dados:', dbError)
+      throw dbError
+    }
 
   } catch (error) {
     console.error('💥 Erro detalhado ao atualizar perfil:', error)
