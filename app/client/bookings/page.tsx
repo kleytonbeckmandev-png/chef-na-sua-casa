@@ -123,9 +123,17 @@ export default function ClientBookingsPage() {
       console.log('🚀 Salvando alterações do agendamento:', selectedBooking.id)
       console.log('📝 Dados para salvar:', editData)
 
-      const selectedDate = new Date(editData.date)
+      // Corrigir problema de fuso horário - garantir que a data seja interpretada corretamente
+      const selectedDate = new Date(editData.date + 'T00:00:00')
       const today = new Date()
       today.setHours(0, 0, 0, 0)
+      
+      console.log('🔍 Validação de data:', {
+        editDataDate: editData.date,
+        selectedDate: selectedDate.toISOString(),
+        today: today.toISOString(),
+        isPast: selectedDate < today
+      })
       
       if (selectedDate < today && !selectedBooking.id) {
         toast({
@@ -299,9 +307,17 @@ export default function ClientBookingsPage() {
   const handleDateChange = (newDate: string) => {
     console.log('📅 Alterando data para:', newDate)
     
-    const selectedDate = new Date(newDate)
+    // Corrigir problema de fuso horário - garantir que a data seja interpretada corretamente
+    const selectedDate = new Date(newDate + 'T00:00:00')
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    
+    console.log('🔍 Comparação de datas:', {
+      newDate,
+      selectedDate: selectedDate.toISOString(),
+      today: today.toISOString(),
+      isPast: selectedDate < today
+    })
     
     // Para edições de agendamentos existentes, permitir datas passadas
     if (selectedDate < today && selectedBooking?.id) {
@@ -348,7 +364,25 @@ export default function ClientBookingsPage() {
   }
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+    // Corrigir problema de fuso horário - adicionar 'T00:00:00' para garantir que seja meia-noite no fuso local
+    const date = new Date(dateString + 'T00:00:00')
+    
+    // Verificar se a data é válida
+    if (isNaN(date.getTime())) {
+      console.error('❌ Data inválida:', dateString)
+      return 'Data inválida'
+    }
+    
+    console.log('🔍 Formatando data:', {
+      original: dateString,
+      parsed: date.toISOString(),
+      local: date.toLocaleDateString('pt-BR'),
+      weekday: date.getDay(),
+      day: date.getDate(),
+      month: date.getMonth() + 1,
+      year: date.getFullYear()
+    })
+    
     return date.toLocaleDateString('pt-BR', {
       weekday: 'long',
       day: 'numeric',

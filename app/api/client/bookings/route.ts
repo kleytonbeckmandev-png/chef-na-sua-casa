@@ -148,9 +148,17 @@ export async function PUT(request: NextRequest) {
     }
 
     // VALIDAÇÃO DE DATA: Para edições, permitir datas passadas (é uma atualização)
-    const selectedDate = new Date(date)
+    // Corrigir problema de fuso horário - garantir que a data seja interpretada corretamente
+    const selectedDate = new Date(date + 'T00:00:00')
     const today = new Date()
     today.setHours(0, 0, 0, 0) // Resetar para início do dia
+    
+    console.log('🔍 Validação de data na API:', {
+      date,
+      selectedDate: selectedDate.toISOString(),
+      today: today.toISOString(),
+      isPast: selectedDate < today
+    })
     
     // Se for uma edição (existe bookingId), permitir datas passadas
     if (selectedDate < today && !bookingId) {
@@ -251,9 +259,17 @@ export async function POST(request: NextRequest) {
     }
 
     // VALIDAÇÃO DE DATA: Para novos agendamentos, não permitir datas passadas
-    const selectedDate = new Date(date)
+    // Corrigir problema de fuso horário - garantir que a data seja interpretada corretamente
+    const selectedDate = new Date(date + 'T00:00:00')
     const today = new Date()
     today.setHours(0, 0, 0, 0) // Resetar para início do dia
+    
+    console.log('🔍 Validação de data para novo agendamento:', {
+      date,
+      selectedDate: selectedDate.toISOString(),
+      today: today.toISOString(),
+      isPast: selectedDate < today
+    })
     
     if (selectedDate < today) {
       return NextResponse.json({
