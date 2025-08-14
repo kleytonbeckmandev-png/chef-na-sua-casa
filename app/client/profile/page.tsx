@@ -122,30 +122,33 @@ export default function ClientProfilePage() {
         const data = await response.json()
         console.log('✅ Resposta da API:', data)
         
-        // Atualizar estado local com dados da API
-        setProfile(prevProfile => {
-          if (!prevProfile) return prevProfile
-          return {
-            ...prevProfile,
-            phone: formData.phone,
-            address: formData.address,
-            dietaryPreferences: formData.dietaryPreferences,
-            updatedAt: new Date().toISOString()
-          }
-        })
-        
-        // Atualizar o nome na sessão se foi alterado
-        if (data.user?.name && data.user.name !== session?.user?.name) {
-          // Forçar refresh da sessão para atualizar o nome
-          window.location.reload()
+        if (data.success) {
+          // Atualizar estado local com dados da API
+          setProfile(prevProfile => {
+            if (!prevProfile) return prevProfile
+            return {
+              ...prevProfile,
+              phone: formData.phone,
+              address: formData.address,
+              dietaryPreferences: formData.dietaryPreferences,
+              updatedAt: new Date().toISOString()
+            }
+          })
+          
+          toast({
+            title: "Perfil atualizado!",
+            description: "Suas informações foram salvas com sucesso.",
+          })
+          
+          setIsEditing(false)
+          
+          // Forçar refresh da página para mostrar o novo nome
+          setTimeout(() => {
+            window.location.reload()
+          }, 1000)
+        } else {
+          throw new Error(data.message || 'Erro ao atualizar perfil')
         }
-        
-        toast({
-          title: "Perfil atualizado!",
-          description: "Suas informações foram salvas com sucesso.",
-        })
-        
-        setIsEditing(false)
       } else {
         const errorData = await response.json()
         throw new Error(errorData.message || 'Erro ao atualizar perfil')
