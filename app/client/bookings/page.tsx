@@ -1,98 +1,169 @@
 "use client"
 
-import { useSession } from 'next-auth/react'
-import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, Clock, Users, ChefHat, MapPin, Star, Eye, MessageSquare } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useToast } from '@/hooks/use-toast'
+import { Calendar, Clock, Users, ChefHat, FileText, Eye, Edit, Save, X } from 'lucide-react'
 
 interface Booking {
   id: string
+  title: string
+  status: 'CONFIRMED' | 'PENDING' | 'CANCELLED' | 'COMPLETED'
   date: string
   time: string
-  peopleCount: number
-  totalPrice: number
-  status: string
-  notes?: string
-  chefName: string
-  menuName: string
-  planName: string
+  people: number
+  chef: string
+  notes: string
+  price: number
+  plan: string
 }
 
+const mockBookings: Booking[] = [
+  {
+    id: '1',
+    title: 'Culinária Italiana',
+    status: 'CONFIRMED',
+    date: '2024-01-14',
+    time: '19:00',
+    people: 4,
+    chef: 'Chef: Maria Costa',
+    notes: 'Cliente prefere massas sem glúten',
+    price: 200.00,
+    plan: 'Avulso'
+  },
+  {
+    id: '2',
+    title: 'Culinária Francesa',
+    status: 'PENDING',
+    date: '2024-01-21',
+    time: '18:00',
+    people: 2,
+    chef: 'Chef: Maria Costa',
+    notes: 'Aniversário de casamento',
+    price: 140.00,
+    plan: 'Mensal'
+  }
+]
+
+const mockMenus = [
+  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos' },
+  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas' },
+  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional' },
+  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais' }
+]
+
 export default function ClientBookingsPage() {
-  const { data: session } = useSession()
-  const [bookings, setBookings] = useState<Booking[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'upcoming' | 'completed' | 'cancelled'>('upcoming')
+  const { toast } = useToast()
+  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editData, setEditData] = useState({
+    date: '',
+    time: '',
+    people: 1,
+    menuId: ''
+  })
 
-  useEffect(() => {
-    fetchBookings()
-  }, [])
+  const handleViewDetails = (booking: Booking) => {
+    setSelectedBooking(booking)
+    setEditData({
+      date: booking.date,
+      time: booking.time,
+      people: booking.people,
+      menuId: mockMenus.find(m => m.name === booking.title)?.id || ''
+    })
+    setIsEditing(false)
+  }
 
-  const fetchBookings = async () => {
+  const handleSaveChanges = async () => {
+    if (!selectedBooking) return
+
     try {
-      // Simular dados de agendamentos (em produção, isso viria da API)
-      const mockBookings: Booking[] = [
-        {
-          id: 'booking-1',
-          date: '2024-01-15',
-          time: '19:00',
-          peopleCount: 4,
-          totalPrice: 200.0,
-          status: 'CONFIRMED',
-          notes: 'Cliente prefere massas sem glúten',
-          chefName: 'Maria Costa',
-          menuName: 'Culinária Italiana',
-          planName: 'Avulso'
-        },
-        {
-          id: 'booking-2',
-          date: '2024-01-22',
-          time: '18:00',
-          peopleCount: 2,
-          totalPrice: 140.0,
-          status: 'PENDING',
-          notes: 'Aniversário de casamento',
-          chefName: 'Maria Costa',
-          menuName: 'Culinária Francesa',
-          planName: 'Mensal'
-        },
-        {
-          id: 'booking-3',
-          date: '2024-01-08',
-          time: '20:00',
-          peopleCount: 6,
-          totalPrice: 300.0,
-          status: 'COMPLETED',
-          notes: 'Jantar de família',
-          chefName: 'João Silva',
-          menuName: 'Culinária Brasileira',
-          planName: 'Avulso'
-        }
-      ]
+      console.log('🚀 Salvando alterações do agendamento:', selectedBooking.id)
+      console.log('📝 Dados para salvar:', editData)
 
-      setBookings(mockBookings)
-      setIsLoading(false)
+      // Chamar API para atualizar
+      const response = await fetch('/api/client/bookings', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bookingId: selectedBooking.id,
+          date: editData.date,
+          time: editData.time,
+          people: editData.people,
+          menuId: editData.menuId
+        }),
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (data.success) {
+          // Atualizar localmente com dados da API
+          const updatedBooking = {
+            ...selectedBooking,
+            date: editData.date,
+            time: editData.time,
+            people: editData.people,
+            title: mockMenus.find(m => m.id === editData.menuId)?.name || selectedBooking.title
+          }
+
+          setBookings(prev => prev.map(b => b.id === selectedBooking.id ? updatedBooking : b))
+          setSelectedBooking(updatedBooking)
+          setIsEditing(false)
+
+          toast({
+            title: "Agendamento atualizado!",
+            description: "As alterações foram salvas com sucesso.",
+          })
+        } else {
+          throw new Error(data.message || 'Erro ao atualizar agendamento')
+        }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erro ao atualizar agendamento')
+      }
     } catch (error) {
-      console.error('Erro ao carregar agendamentos:', error)
-      setIsLoading(false)
+      console.error('Erro ao salvar agendamento:', error)
+      toast({
+        title: "Erro ao salvar",
+        description: error instanceof Error ? error.message : "Não foi possível salvar as alterações. Tente novamente.",
+        variant: "destructive",
+      })
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'CONFIRMED':
-        return <Badge className="bg-green-100 text-green-800">Confirmado</Badge>
-      case 'PENDING':
-        return <Badge className="bg-yellow-100 text-yellow-800">Pendente</Badge>
-      case 'COMPLETED':
-        return <Badge className="bg-blue-100 text-blue-800">Concluído</Badge>
-      case 'CANCELLED':
-        return <Badge className="bg-red-100 text-red-800">Cancelado</Badge>
-      default:
-        return <Badge variant="secondary">{status}</Badge>
+  const handleCancelEdit = () => {
+    if (selectedBooking) {
+      setEditData({
+        date: selectedBooking.date,
+        time: selectedBooking.time,
+        people: selectedBooking.people,
+        menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || ''
+      })
     }
+    setIsEditing(false)
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      CONFIRMED: { variant: 'default', text: 'Confirmado', color: 'bg-green-100 text-green-800' },
+      PENDING: { variant: 'secondary', text: 'Pendente', color: 'bg-yellow-100 text-yellow-800' },
+      CANCELLED: { variant: 'destructive', text: 'Cancelado', color: 'bg-red-100 text-red-800' },
+      COMPLETED: { variant: 'default', text: 'Concluído', color: 'bg-blue-100 text-blue-800' }
+    }
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.PENDING
+    return <Badge className={config.color}>{config.text}</Badge>
   }
 
   const formatDate = (dateString: string) => {
@@ -105,31 +176,9 @@ export default function ClientBookingsPage() {
     })
   }
 
-  const filterBookings = (status: string) => {
-    return bookings.filter(booking => {
-      if (activeTab === 'upcoming') {
-        return ['CONFIRMED', 'PENDING'].includes(booking.status)
-      } else if (activeTab === 'completed') {
-        return booking.status === 'COMPLETED'
-      } else if (activeTab === 'cancelled') {
-        return booking.status === 'CANCELLED'
-      }
-      return true
-    })
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Carregando agendamentos...</p>
-        </div>
-      </div>
-    )
-  }
-
-  const filteredBookings = filterBookings(activeTab)
+  const upcomingBookings = bookings.filter(b => ['CONFIRMED', 'PENDING'].includes(b.status))
+  const completedBookings = bookings.filter(b => b.status === 'COMPLETED')
+  const cancelledBookings = bookings.filter(b => b.status === 'CANCELLED')
 
   return (
     <div className="space-y-6">
@@ -140,170 +189,393 @@ export default function ClientBookingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
-        <button
-          onClick={() => setActiveTab('upcoming')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'upcoming'
-              ? 'bg-white text-orange-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Próximos ({bookings.filter(b => ['CONFIRMED', 'PENDING'].includes(b.status)).length})
-        </button>
-        <button
-          onClick={() => setActiveTab('completed')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'completed'
-              ? 'bg-white text-orange-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Concluídos ({bookings.filter(b => b.status === 'COMPLETED').length})
-        </button>
-        <button
-          onClick={() => setActiveTab('cancelled')}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'cancelled'
-              ? 'bg-white text-orange-600 shadow-sm'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          Cancelados ({bookings.filter(b => b.status === 'CANCELLED').length})
-        </button>
-      </div>
+      <Tabs defaultValue="upcoming" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="upcoming">
+            Próximos ({upcomingBookings.length})
+          </TabsTrigger>
+          <TabsTrigger value="completed">
+            Concluídos ({completedBookings.length})
+          </TabsTrigger>
+          <TabsTrigger value="cancelled">
+            Cancelados ({cancelledBookings.length})
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Bookings List */}
-      {filteredBookings.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Nenhum agendamento encontrado
-            </h3>
-            <p className="text-gray-600 mb-4">
-              {activeTab === 'upcoming' && 'Você não tem agendamentos futuros.'}
-              {activeTab === 'completed' && 'Você ainda não completou nenhum agendamento.'}
-              {activeTab === 'cancelled' && 'Você não tem agendamentos cancelados.'}
-            </p>
-            <Button>
-              Fazer Novo Agendamento
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-4">
-          {filteredBookings.map((booking) => (
-            <Card key={booking.id} className="hover:shadow-md transition-shadow">
+        {/* Próximos Agendamentos */}
+        <TabsContent value="upcoming" className="space-y-4">
+          {upcomingBookings.map((booking) => (
+            <Card key={booking.id} className="border-l-4 border-l-orange-500">
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <CardTitle className="text-lg">{booking.menuName}</CardTitle>
+                    <CardTitle className="text-xl">{booking.title}</CardTitle>
+                    <div className="flex items-center gap-2 mt-2">
                       {getStatusBadge(booking.status)}
                     </div>
-                    <CardDescription className="flex items-center space-x-4 text-sm">
-                      <span className="flex items-center space-x-1">
-                        <Calendar className="h-4 w-4" />
-                        <span>{formatDate(booking.date)}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <Clock className="h-4 w-4" />
-                        <span>{booking.time}</span>
-                      </span>
-                      <span className="flex items-center space-x-1">
-                        <Users className="h-4 w-4" />
-                        <span>{booking.peopleCount} pessoas</span>
-                      </span>
-                    </CardDescription>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-orange-600">
-                      R$ {booking.totalPrice.toFixed(2)}
+                    <div className="text-3xl font-bold text-orange-600">
+                      R$ {booking.price.toFixed(2)}
                     </div>
-                    <div className="text-sm text-gray-500">{booking.planName}</div>
+                    <div className="text-sm text-gray-500">{booking.plan}</div>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2 text-sm">
-                      <ChefHat className="h-4 w-4 text-orange-600" />
-                      <span className="font-medium">Chef:</span>
-                      <span>{booking.chefName}</span>
-                    </div>
-                    {booking.notes && (
-                      <div className="flex items-start space-x-2 text-sm">
-                        <MessageSquare className="h-4 w-4 text-gray-500 mt-0.5" />
-                        <span className="text-gray-600">{booking.notes}</span>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDate(booking.date)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="h-4 w-4" />
+                    <span>{booking.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Users className="h-4 w-4" />
+                    <span>{booking.people} pessoas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <ChefHat className="h-4 w-4" />
+                    <span>{booking.chef}</span>
+                  </div>
+                </div>
+                {booking.notes && (
+                  <div className="flex items-start gap-2 text-gray-600 mb-4">
+                    <FileText className="h-4 w-4 mt-0.5" />
+                    <span className="text-sm">{booking.notes}</span>
+                  </div>
+                )}
+                <div className="flex gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleViewDetails(booking)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle className="text-2xl">{booking.title}</DialogTitle>
+                        <DialogDescription>
+                          Detalhes completos do seu agendamento
+                        </DialogDescription>
+                      </DialogHeader>
+                      
+                      <div className="space-y-6">
+                        {/* Status e Preço */}
+                        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-sm text-gray-600">Status</p>
+                            {getStatusBadge(booking.status)}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm text-gray-600">Valor</p>
+                            <p className="text-2xl font-bold text-orange-600">
+                              R$ {booking.price.toFixed(2)}
+                            </p>
+                            <p className="text-sm text-gray-500">{booking.plan}</p>
+                          </div>
+                        </div>
+
+                        {/* Informações do Chef */}
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <h3 className="font-semibold text-blue-900 mb-2">Chef Responsável</h3>
+                          <div className="flex items-center gap-2">
+                            <ChefHat className="h-5 w-5 text-blue-600" />
+                            <span className="text-blue-800">{booking.chef}</span>
+                          </div>
+                        </div>
+
+                        {/* Detalhes Editáveis */}
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold">Detalhes do Agendamento</h3>
+                            {!isEditing ? (
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setIsEditing(true)}
+                              >
+                                <Edit className="h-4 w-4 mr-2" />
+                                Editar
+                              </Button>
+                            ) : (
+                              <div className="flex gap-2">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={handleCancelEdit}
+                                >
+                                  <X className="h-4 w-4 mr-2" />
+                                  Cancelar
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={handleSaveChanges}
+                                >
+                                  <Save className="h-4 w-4 mr-2" />
+                                  Salvar
+                                </Button>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <Label htmlFor="date">Data</Label>
+                              <Input
+                                id="date"
+                                type="date"
+                                value={editData.date}
+                                onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+                                disabled={!isEditing}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="time">Horário</Label>
+                              <Input
+                                id="time"
+                                type="time"
+                                value={editData.time}
+                                onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                disabled={!isEditing}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="people">Quantidade de Pessoas</Label>
+                              <Input
+                                id="people"
+                                type="number"
+                                min="1"
+                                max="20"
+                                value={editData.people}
+                                onChange={(e) => setEditData({ ...editData, people: parseInt(e.target.value) })}
+                                disabled={!isEditing}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="menu">Cardápio</Label>
+                              <Select
+                                value={editData.menuId}
+                                onValueChange={(value) => setEditData({ ...editData, menuId: value })}
+                                disabled={!isEditing}
+                              >
+                                <SelectTrigger className="mt-1">
+                                  <SelectValue placeholder="Selecione o cardápio" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {mockMenus.map((menu) => (
+                                    <SelectItem key={menu.id} value={menu.id}>
+                                      {menu.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </div>
+
+                          {isEditing && (
+                            <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <p className="text-sm text-yellow-800">
+                                💡 <strong>Dica:</strong> As alterações serão salvas automaticamente quando você clicar em "Salvar".
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Observações */}
+                        <div className="p-4 bg-gray-50 rounded-lg">
+                          <h3 className="font-semibold mb-2">Observações</h3>
+                          <p className="text-gray-700">{booking.notes || 'Nenhuma observação adicional.'}</p>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button variant="outline" size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Detalhes
+                    </DialogContent>
+                  </Dialog>
+                  
+                  {booking.status === 'PENDING' && (
+                    <Button variant="destructive" size="sm">
+                      Cancelar
                     </Button>
-                    {booking.status === 'PENDING' && (
-                      <Button variant="outline" size="sm" className="text-red-600 border-red-200 hover:bg-red-50">
-                        Cancelar
-                      </Button>
-                    )}
-                    {booking.status === 'COMPLETED' && (
-                      <Button variant="outline" size="sm">
-                        <Star className="h-4 w-4 mr-2" />
-                        Avaliar
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
           ))}
-        </div>
-      )}
+        </TabsContent>
 
-      {/* Quick Stats */}
+        {/* Concluídos */}
+        <TabsContent value="completed" className="space-y-4">
+          {completedBookings.map((booking) => (
+            <Card key={booking.id} className="border-l-4 border-l-blue-500 opacity-75">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-xl">{booking.title}</CardTitle>
+                    <div className="flex items-center gap-2 mt-2">
+                      {getStatusBadge(booking.status)}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold text-blue-600">
+                      R$ {booking.price.toFixed(2)}
+                    </div>
+                    <div className="text-sm text-gray-500">{booking.plan}</div>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Calendar className="h-4 w-4" />
+                    <span>{formatDate(booking.date)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Clock className="h-4 w-4" />
+                    <span>{booking.time}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Users className="h-4 w-4" />
+                    <span>{booking.people} pessoas</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <ChefHat className="h-4 w-4" />
+                    <span>{booking.chef}</span>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>{booking.title}</DialogTitle>
+                        <DialogDescription>
+                          Agendamento concluído
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <p>Este agendamento foi concluído com sucesso.</p>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </TabsContent>
+
+        {/* Cancelados */}
+        <TabsContent value="cancelled" className="space-y-4">
+          {cancelledBookings.length === 0 ? (
+            <Card className="text-center py-12">
+              <CardContent>
+                <p className="text-gray-500">Nenhum agendamento cancelado.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            cancelledBookings.map((booking) => (
+              <Card key={booking.id} className="border-l-4 border-l-red-500 opacity-75">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-xl">{booking.title}</CardTitle>
+                      <div className="flex items-center gap-2 mt-2">
+                        {getStatusBadge(booking.status)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-red-600">
+                        R$ {booking.price.toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-500">{booking.plan}</div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(booking.date)}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{booking.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>{booking.people} pessoas</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <ChefHat className="h-4 w-4" />
+                      <span>{booking.chef}</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <Eye className="h-4 w-4 mr-2" />
+                          Ver Detalhes
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>{booking.title}</DialogTitle>
+                          <DialogDescription>
+                            Agendamento cancelado
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <p>Este agendamento foi cancelado.</p>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Resumo */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">
-                {bookings.filter(b => ['CONFIRMED', 'PENDING'].includes(b.status)).length}
-              </div>
-              <div className="text-sm text-gray-600">Próximos</div>
-            </div>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold text-orange-600">{upcomingBookings.length}</div>
+            <div className="text-sm text-gray-600">Próximos</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {bookings.filter(b => b.status === 'COMPLETED').length}
-              </div>
-              <div className="text-sm text-gray-600">Concluídos</div>
-            </div>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold text-green-600">{completedBookings.length}</div>
+            <div className="text-sm text-gray-600">Concluídos</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {bookings.length}
-              </div>
-              <div className="text-sm text-gray-600">Total</div>
-            </div>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold text-blue-600">{bookings.length}</div>
+            <div className="text-sm text-gray-600">Total</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                R$ {bookings.reduce((sum, b) => sum + b.totalPrice, 0).toFixed(2)}
-              </div>
-              <div className="text-sm text-gray-600">Total Investido</div>
+          <CardContent className="p-6 text-center">
+            <div className="text-3xl font-bold text-purple-600">
+              R$ {bookings.reduce((sum, b) => sum + b.price, 0).toFixed(2)}
             </div>
+            <div className="text-sm text-gray-600">Total Investido</div>
           </CardContent>
         </Card>
       </div>
