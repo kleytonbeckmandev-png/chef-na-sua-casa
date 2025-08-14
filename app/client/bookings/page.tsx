@@ -75,8 +75,8 @@ export default function ClientBookingsPage() {
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking)
     setEditData({
-      date: new Date().toISOString().split('T')[0], // Sempre data atual
-      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
+      date: booking.date, // Usar a data real do agendamento
+      time: booking.time, // Usar o horário real do agendamento
       people: booking.people,
       menuId: mockMenus.find(m => m.name === booking.title)?.id || '',
       notes: booking.notes || '' // Incluir observações do agendamento
@@ -91,12 +91,13 @@ export default function ClientBookingsPage() {
       console.log('🚀 Salvando alterações do agendamento:', selectedBooking.id)
       console.log('📝 Dados para salvar:', editData)
 
-      // VALIDAÇÃO DE DATA NO FRONTEND
+      // VALIDAÇÃO DE DATA NO FRONTEND: Para edições, permitir datas passadas
       const selectedDate = new Date(editData.date)
       const today = new Date()
       today.setHours(0, 0, 0, 0) // Resetar para início do dia
       
-      if (selectedDate < today) {
+      // Se for uma edição de agendamento existente, permitir datas passadas
+      if (selectedDate < today && !selectedBooking.id) {
         toast({
           title: "❌ **DATA INVÁLIDA**",
           description: "**Não é permitido agendar datas que já passaram!**",
@@ -164,8 +165,8 @@ export default function ClientBookingsPage() {
   const handleCancelEdit = () => {
     if (selectedBooking) {
       setEditData({
-        date: new Date().toISOString().split('T')[0], // Sempre data atual
-        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
+        date: selectedBooking.date, // Usar a data real do agendamento
+        time: selectedBooking.time, // Usar o horário real do agendamento
         people: selectedBooking.people,
         menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || '',
         notes: selectedBooking.notes || '' // Incluir observações do agendamento
@@ -180,14 +181,25 @@ export default function ClientBookingsPage() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
+    // Para edições de agendamentos existentes, permitir datas passadas
+    if (selectedDate < today && selectedBooking) {
+      // Data válida para edição, atualizar normalmente
+      setEditData(prev => ({
+        ...prev,
+        date: newDate
+      }))
+      return
+    }
+    
+    // Para novos agendamentos, não permitir datas passadas
     if (selectedDate < today) {
       // Mostrar pop-up de erro
-              toast({
-          title: "❌ **DATA INVÁLIDA**",
-          description: "**Não é possível agendar uma data passada!**",
-          variant: "destructive",
-          duration: 5000, // 5 segundos
-        })
+      toast({
+        title: "❌ **DATA INVÁLIDA**",
+        description: "**Não é possível agendar uma data passada!**",
+        variant: "destructive",
+        duration: 5000, // 5 segundos
+      })
       
       // Resetar para data atual
       setEditData(prev => ({
@@ -354,6 +366,11 @@ export default function ClientBookingsPage() {
                              {editData.date === new Date().toISOString().split('T')[0] && (
                                <p className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
                                  💡 <strong>Dica:</strong> Para hoje, o sistema verifica automaticamente a disponibilidade do chef
+                               </p>
+                             )}
+                             {new Date(editData.date) < new Date() && (
+                               <p className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800">
+                                 ✅ <strong>Edição permitida:</strong> Você pode editar agendamentos passados
                                </p>
                              )}
                            </div>

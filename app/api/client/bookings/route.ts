@@ -127,12 +127,13 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // VALIDAÇÃO DE DATA: Não permitir datas passadas
+    // VALIDAÇÃO DE DATA: Para edições, permitir datas passadas (é uma atualização)
     const selectedDate = new Date(date)
     const today = new Date()
     today.setHours(0, 0, 0, 0) // Resetar para início do dia
     
-    if (selectedDate < today) {
+    // Se for uma edição (existe bookingId), permitir datas passadas
+    if (selectedDate < today && !bookingId) {
       return NextResponse.json({
         success: false,
         message: 'Não é permitido agendar datas que já passaram. Por favor, escolha uma data futura.'
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // VALIDAÇÃO DE DATA: Não permitir datas passadas
+    // VALIDAÇÃO DE DATA: Para novos agendamentos, não permitir datas passadas
     const selectedDate = new Date(date)
     const today = new Date()
     today.setHours(0, 0, 0, 0) // Resetar para início do dia
@@ -286,7 +287,7 @@ export async function DELETE(request: NextRequest) {
     console.log('✅ Simulando cancelamento bem-sucedido')
 
     return NextResponse.json({
-      success: false,
+      success: true,
       message: 'Agendamento cancelado com sucesso!',
       booking: { id: bookingId, status: 'CANCELLED' }
     })
