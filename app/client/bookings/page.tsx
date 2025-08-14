@@ -76,6 +76,7 @@ export default function ClientBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>(mockBookings)
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false) // Estado para controlar o modal
   const [editData, setEditData] = useState({
     date: new Date().toISOString().split('T')[0], // Data atual por padrão
     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Hora atual por padrão
@@ -98,6 +99,7 @@ export default function ClientBookingsPage() {
       notes: booking.notes || '' // Incluir observações do agendamento
     })
     setIsEditing(false)
+    setIsModalOpen(true) // Abrir o modal
   }
 
   const handleSaveChanges = async () => {
@@ -147,8 +149,8 @@ export default function ClientBookingsPage() {
           const updatedBooking = {
             ...selectedBooking,
             ...data.booking, // Usar todos os dados retornados pela API
-            date: editData.date,
-            time: editData.time,
+            date: editData.date, // Usar a data editada
+            time: editData.time, // Usar o horário editado
             people: editData.people,
             title: mockMenus.find(m => m.id === editData.menuId)?.name || selectedBooking.title,
             notes: editData.notes // Incluir observações atualizadas
@@ -158,31 +160,64 @@ export default function ClientBookingsPage() {
           console.log('📅 Data original:', selectedBooking.date)
           console.log('📅 Data editada:', editData.date)
           console.log('📅 Data final:', updatedBooking.date)
+          console.log('⏰ Horário original:', selectedBooking.time)
+          console.log('⏰ Horário editado:', editData.time)
+          console.log('⏰ Horário final:', updatedBooking.time)
 
-          // Atualizar a lista de agendamentos
+          // Atualizar a lista de agendamentos com os dados corretos
           setBookings(prev => {
-            const newBookings = prev.map(b => b.id === selectedBooking.id ? updatedBooking : b)
+            const newBookings = prev.map(b => 
+              b.id === selectedBooking.id 
+                ? {
+                    ...b,
+                    date: editData.date,        // Data atualizada
+                    time: editData.time,        // Horário atualizado
+                    people: editData.people,    // Pessoas atualizadas
+                    title: mockMenus.find(m => m.id === editData.menuId)?.name || b.title,
+                    notes: editData.notes       // Observações atualizadas
+                  }
+                : b
+            )
             console.log('📋 Lista atualizada:', newBookings)
             console.log('📋 Agendamento encontrado na lista:', newBookings.find(b => b.id === selectedBooking.id))
             return newBookings
           })
           
           // Atualizar o agendamento selecionado
-          setSelectedBooking(updatedBooking)
+          setSelectedBooking(prev => prev ? {
+            ...prev,
+            date: editData.date,
+            time: editData.time,
+            people: editData.people,
+            title: mockMenus.find(m => m.id === editData.menuId)?.name || prev.title,
+            notes: editData.notes
+          } : null)
           
           // Fechar modo de edição
           setIsEditing(false)
           
-          // Forçar re-renderização
+          // Verificar se os dados foram realmente atualizados
           setTimeout(() => {
-            console.log('🔄 Forçando re-renderização...')
-            setBookings(prev => [...prev])
-          }, 100)
+            console.log('🔍 Verificando dados após atualização...')
+            setBookings(currentBookings => {
+              console.log('📋 Estado atual dos agendamentos:', currentBookings)
+              console.log('📋 Agendamento atualizado na lista:', currentBookings.find(b => b.id === selectedBooking.id))
+              return currentBookings
+            })
+          }, 200)
 
+          // Mostrar mensagem de sucesso
           toast({
-            title: "Agendamento atualizado!",
-            description: "As alterações foram salvas com sucesso.",
+            title: "✅ Sucesso!",
+            description: "As alterações foram salvas.",
           })
+          
+          // Fechar o modal automaticamente após 1 segundo
+          setTimeout(() => {
+            console.log('🚪 Fechando modal automaticamente...')
+            setIsModalOpen(false)
+            setSelectedBooking(null)
+          }, 1000)
         } else {
           throw new Error(data.message || 'Erro ao atualizar agendamento')
         }
@@ -210,6 +245,13 @@ export default function ClientBookingsPage() {
         notes: selectedBooking.notes || '' // Incluir observações do agendamento
       })
     }
+    setIsEditing(false)
+  }
+
+  // Função para fechar o modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedBooking(null)
     setIsEditing(false)
   }
 
@@ -357,17 +399,17 @@ export default function ClientBookingsPage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => handleViewDetails(booking)}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        Ver Detalhes
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
+                                     <Dialog open={isModalOpen && selectedBooking?.id === booking.id} onOpenChange={handleCloseModal}>
+                     <DialogTrigger asChild>
+                       <Button 
+                         variant="outline" 
+                         onClick={() => handleViewDetails(booking)}
+                       >
+                         <Eye className="h-4 w-4 mr-2" />
+                         Ver Detalhes
+                       </Button>
+                     </DialogTrigger>
+                     <DialogContent className="max-w-2xl">
                       <DialogHeader>
                         <DialogTitle className="text-2xl">{booking.title}</DialogTitle>
                         <DialogDescription>

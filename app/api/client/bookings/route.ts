@@ -188,8 +188,8 @@ export async function PUT(request: NextRequest) {
     const updatedBooking = {
       ...originalBooking, // Manter todos os dados originais
       id: bookingId,
-      date: date,
-      time: time,
+      date: date, // Usar a data recebida
+      time: time, // Usar o horário recebido
       people: people,
       title: mockMenus.find(m => m.id === menuId)?.name || originalBooking?.title || 'Cardápio Selecionado',
       notes: notes || '', // Incluir observações
@@ -198,6 +198,8 @@ export async function PUT(request: NextRequest) {
 
     console.log('📝 Dados recebidos:', { date, time, people, menuId, notes })
     console.log('🔄 Agendamento atualizado:', updatedBooking)
+    console.log('📅 Data no agendamento:', updatedBooking.date)
+    console.log('⏰ Horário no agendamento:', updatedBooking.time)
 
     // Atualizar os dados mock locais para persistir as mudanças
     const bookingIndex = mockBookings.findIndex(b => b.id === bookingId)
