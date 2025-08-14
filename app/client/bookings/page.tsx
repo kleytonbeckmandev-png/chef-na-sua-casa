@@ -49,6 +49,18 @@ const mockBookings: Booking[] = [
     notes: 'Aniversário de casamento',
     price: 140.00,
     plan: 'Mensal'
+  },
+  {
+    id: '3',
+    title: 'Culinária Brasileira',
+    status: 'PENDING',
+    date: '2025-10-24',
+    time: '22:01',
+    people: 20,
+    chef: 'Chef: Maria Costa',
+    notes: 'Aniversário de casamento 50 anos',
+    price: 140.00,
+    plan: 'Mensal'
   }
 ]
 
