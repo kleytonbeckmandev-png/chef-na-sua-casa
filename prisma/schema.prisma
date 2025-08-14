@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(CLIENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relacionamentos
+  clientProfile    ClientProfile?
+  chefProfile      ChefProfile?
+  bookings         Booking[]
+  chefBookings     Booking[] @relation("ChefBookings")
+
+  @@map("users")
+}
+
+model ClientProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  dietaryPreferences   String[]
+  address              String
+  phone                String
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  // Relacionamentos
+  user    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings Booking[]
+
+  @@map("client_profiles")
+}
+
+model ChefProfile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  specialties String[]
+  experience  String
+  bio         String?
+  hourlyRate  Float
+  isAvailable Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@map("chef_profiles")
+}
+
+model Plan {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  duration    Int      // em dias
+  price       Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  bookings Booking[]
+
+  @@map("plans")
+}
+
+model Menu {
+  id          String   @id @default(cuid())
+  name        String
+  description String
+  price       Float
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relacionamentos
+  bookings Booking[]
+
+  @@map("menus")
+}
+
+model Booking {
+  id          String        @id @default(cuid())
+  clientId    String
+  chefId      String
+  planId      String
+  menuId      String
+  date        DateTime
+  time        String
+  peopleCount Int
+  totalPrice  Float
+  status      BookingStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relacionamentos
+  client User @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  chef   User @relation("ChefBookings", fields: [chefId], references: [id], onDelete: Cascade)
+  plan   Plan @relation(fields: [planId], references: [id])
+  menu   Menu @relation(fields: [menuId], references: [id])
+
+  @@map("bookings")
+}
+
+enum UserRole {
+  CLIENT
+  CHEF
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
