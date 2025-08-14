@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
       await prisma.clientProfile.create({
         data: {
           userId: user.id,
-          dietaryPreferences: dietaryPreferences ? [dietaryPreferences] : [],
+          dietaryPreferences: dietaryPreferences || 'Sem restrições',
           address,
           phone,
         }
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
       await prisma.chefProfile.create({
         data: {
           userId: user.id,
-          specialties: [specialties],
+          specialties: specialties || 'Culinária geral',
           experience,
           bio: bio || '',
           hourlyRate: parseFloat(hourlyRate),
