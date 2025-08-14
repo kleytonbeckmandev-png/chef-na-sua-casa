@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -73,17 +73,66 @@ const mockMenus = [
 
 export default function ClientBookingsPage() {
   const { toast } = useToast()
-  const [bookings, setBookings] = useState<Booking[]>(mockBookings)
+  
+  // Função utilitária para obter a data atual no fuso horário local
+  const getCurrentDate = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+  
+  const [bookings, setBookings] = useState<Booking[]>([])
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [editData, setEditData] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: getCurrentDate(),
     time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
     people: 1,
     menuId: '',
     notes: ''
   })
+
+  // Função para buscar agendamentos da API
+  const fetchBookings = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/client/bookings')
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success) {
+          setBookings(data.bookings)
+        } else {
+          console.error('Erro ao buscar agendamentos:', data.message)
+          toast({
+            title: "Erro",
+            description: "Não foi possível carregar os agendamentos.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        throw new Error('Erro na requisição')
+      }
+    } catch (error) {
+      console.error('Erro ao buscar agendamentos:', error)
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os agendamentos.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Carregar agendamentos quando a página for carregada
+  useEffect(() => {
+    fetchBookings()
+  }, [fetchBookings])
 
   const handleViewDetails = (booking: Booking) => {
     console.log('👁️ Abrindo detalhes do agendamento:', booking)
@@ -203,6 +252,9 @@ export default function ClientBookingsPage() {
             description: "As alterações foram salvas.",
           })
           
+          // Recarregar os dados da API para garantir sincronização
+          await fetchBookings()
+          
           setTimeout(() => {
             console.log('🚪 Fechando modal automaticamente...')
             setIsModalOpen(false)
@@ -286,6 +338,9 @@ export default function ClientBookingsPage() {
             description: "O agendamento foi cancelado com sucesso.",
           })
           
+          // Recarregar os dados da API para garantir sincronização
+          await fetchBookings()
+          
           console.log('🎉 Cancelamento concluído com sucesso!')
         } else {
           throw new Error(data.message || 'Erro ao cancelar agendamento')
@@ -333,7 +388,7 @@ export default function ClientBookingsPage() {
         description: "**Não é permitido agendar datas que já passaram!**",
         variant: "destructive",
       })
-      setEditData(prev => ({ ...prev, date: new Date().toISOString().split('T')[0] }))
+      setEditData(prev => ({ ...prev, date: getCurrentDate() }))
       return
     }
     
@@ -401,18 +456,26 @@ export default function ClientBookingsPage() {
         <h1 className="text-3xl font-bold text-gray-900">Meus Agendamentos</h1>
       </div>
 
-      <Tabs defaultValue="upcoming" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="upcoming">
-            Próximos ({upcomingBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="completed">
-            Concluídos ({completedBookings.length})
-          </TabsTrigger>
-          <TabsTrigger value="cancelled">
-            Cancelados ({cancelledBookings.length})
-          </TabsTrigger>
-        </TabsList>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Carregando agendamentos...</p>
+          </div>
+        </div>
+      ) : (
+        <Tabs defaultValue="upcoming" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="upcoming">
+              Próximos ({upcomingBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="completed">
+              Concluídos ({completedBookings.length})
+            </TabsTrigger>
+            <TabsTrigger value="cancelled">
+              Cancelados ({cancelledBookings.length})
+            </TabsTrigger>
+          </TabsList>
 
         <TabsContent value="upcoming" className="space-y-4">
           {upcomingBookings.map((booking) => (
@@ -595,7 +658,8 @@ export default function ClientBookingsPage() {
             ))
           )}
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      )}
 
       {/* Modal de Detalhes */}
       <Dialog open={isModalOpen} onOpenChange={handleCloseModal}>
@@ -635,12 +699,12 @@ export default function ClientBookingsPage() {
                   <div className="text-sm text-blue-700">
                     <p>⏰ <strong>Expediente:</strong> 8h às 22h</p>
                     <p>📅 <strong>Disponibilidade:</strong> Verificada automaticamente</p>
-                    {editData.date === new Date().toISOString().split('T')[0] && (
+                    {editData.date === getCurrentDate() && (
                       <p className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
                         💡 <strong>Dica:</strong> Para hoje, o sistema verifica automaticamente a disponibilidade do chef
                       </p>
                     )}
-                    {new Date(editData.date) < new Date() && (
+                    {new Date(editData.date + 'T00:00:00') < new Date() && (
                       <p className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800">
                         ✅ <strong>Edição permitida:</strong> Você pode editar agendamentos passados
                       </p>
@@ -650,12 +714,7 @@ export default function ClientBookingsPage() {
 
                 {/* Detalhes Editáveis */}
                 <div className="space-y-4">
-                  {/* Verificação de Sincronização */}
-                  {process.env.NODE_ENV === 'development' && (
-                    <div className="p-2 bg-gray-100 rounded text-xs text-gray-600">
-                      🔍 <strong>Debug:</strong> selectedBooking.date: {selectedBooking.date} | editData.date: {editData.date} | selectedBooking.time: {selectedBooking.time} | editData.time: {editData.time}
-                    </div>
-                  )}
+
                   
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Detalhes do Agendamento</h3>
@@ -697,7 +756,7 @@ export default function ClientBookingsPage() {
                         type="date"
                         value={editData.date}
                         onChange={(e) => handleDateChange(e.target.value)}
-                        min={new Date().toISOString().split('T')[0]}
+                        min={getCurrentDate()}
                         disabled={!isEditing}
                         className="mt-1"
                       />

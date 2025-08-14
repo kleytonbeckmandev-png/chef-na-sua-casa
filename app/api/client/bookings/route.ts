@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-// Dados mock para simulação
+// Dados mock para simulação (serão substituídos pelo banco de dados)
 const mockBookings = [
   {
     id: '1',
@@ -106,11 +106,56 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando GET /api/client/bookings')
     
-    console.log('✅ Retornando agendamentos mock:', mockBookings.length)
+    // Buscar agendamentos do banco de dados
+    const bookings = await prisma.booking.findMany({
+      include: {
+        client: {
+          select: {
+            name: true,
+            email: true
+          }
+        },
+        chef: {
+          select: {
+            name: true
+          }
+        },
+        plan: {
+          select: {
+            name: true
+          }
+        },
+        menu: {
+          select: {
+            name: true
+          }
+        }
+      },
+      orderBy: {
+        date: 'desc'
+      }
+    })
+
+    // Converter para o formato esperado pelo frontend
+    const formattedBookings = bookings.map(booking => ({
+      id: booking.id,
+      title: booking.menu.name,
+      status: booking.status,
+      date: booking.date.toISOString().split('T')[0],
+      time: booking.time,
+      people: booking.peopleCount,
+      chef: `Chef: ${booking.chef.name}`,
+      chefId: booking.chefId,
+      notes: booking.notes || '',
+      price: booking.totalPrice,
+      plan: booking.plan.name
+    }))
+
+    console.log('✅ Retornando agendamentos do banco:', formattedBookings.length)
 
     return NextResponse.json({
       success: true,
-      bookings: mockBookings
+      bookings: formattedBookings
     })
 
   } catch (error) {
@@ -185,49 +230,70 @@ export async function PUT(request: NextRequest) {
       console.log('✅ Chef disponível para o horário selecionado')
     }
 
-    // TEMPORARIAMENTE: Simular sucesso com dados mock
+    // Atualizar no banco de dados
     console.log('✅ Validações de data e disponibilidade aprovadas')
-    console.log('✅ Simulando atualização bem-sucedida')
+    console.log('✅ Atualizando no banco de dados')
 
-    // Buscar o agendamento original para manter dados não editados
-    const originalBooking = mockBookings.find(b => b.id === bookingId)
-    console.log('📋 Agendamento original:', originalBooking)
-    console.log('📝 Dados recebidos na API:', { date, time, people, menuId, notes })
+    // Converter a data para o formato DateTime
+    const bookingDate = new Date(date + 'T00:00:00')
     
-    const updatedBooking = {
-      ...originalBooking, // Manter todos os dados originais
-      id: bookingId,
-      date: date, // Usar a data recebida
-      time: time, // Usar o horário recebido
-      people: people,
-      title: mockMenus.find(m => m.id === menuId)?.name || originalBooking?.title || 'Cardápio Selecionado',
-      notes: notes || '', // Incluir observações
-      updatedAt: new Date().toISOString()
-    }
-    
-    console.log('🔄 Objeto atualizado criado:', updatedBooking)
-    console.log('📅 Data final:', updatedBooking.date)
-    console.log('⏰ Horário final:', updatedBooking.time)
+    // Atualizar o agendamento no banco
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        date: bookingDate,
+        time: time,
+        peopleCount: people,
+        menuId: menuId,
+        notes: notes || '',
+        updatedAt: new Date()
+      },
+      include: {
+        client: {
+          select: {
+            name: true,
+            email: true
+          }
+        },
+        chef: {
+          select: {
+            name: true
+          }
+        },
+        plan: {
+          select: {
+            name: true
+          }
+        },
+        menu: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
 
-    console.log('🔄 Agendamento atualizado:', updatedBooking)
-
-    // Atualizar os dados mock locais para persistir as mudanças
-    const bookingIndex = mockBookings.findIndex(b => b.id === bookingId)
-    if (bookingIndex !== -1) {
-      mockBookings[bookingIndex] = updatedBooking
-      console.log('💾 Dados mock atualizados localmente')
-      console.log('📋 Mock atualizado:', mockBookings[bookingIndex])
-      console.log('🔍 Verificação final dos dados mock:')
-      console.log('  - Data:', mockBookings[bookingIndex].date)
-      console.log('  - Horário:', mockBookings[bookingIndex].time)
-      console.log('  - Pessoas:', mockBookings[bookingIndex].people)
-      console.log('  - Observações:', mockBookings[bookingIndex].notes)
+    // Converter para o formato esperado pelo frontend
+    const formattedBooking = {
+      id: updatedBooking.id,
+      title: updatedBooking.menu.name,
+      status: updatedBooking.status,
+      date: updatedBooking.date.toISOString().split('T')[0],
+      time: updatedBooking.time,
+      people: updatedBooking.peopleCount,
+      chef: `Chef: ${updatedBooking.chef.name}`,
+      chefId: updatedBooking.chefId,
+      notes: updatedBooking.notes || '',
+      price: updatedBooking.totalPrice,
+      plan: updatedBooking.plan.name
     }
+
+    console.log('✅ Agendamento atualizado no banco:', formattedBooking)
 
     return NextResponse.json({
       success: true,
       message: 'Agendamento atualizado com sucesso!',
-      booking: updatedBooking
+      booking: formattedBooking
     })
 
   } catch (error) {
@@ -295,28 +361,88 @@ export async function POST(request: NextRequest) {
       console.log('✅ Chef disponível para o horário selecionado')
     }
 
-    // TEMPORARIAMENTE: Simular sucesso com dados mock
+    // Criar novo agendamento no banco de dados
     console.log('✅ Validações de data e disponibilidade aprovadas')
-    console.log('✅ Simulando criação bem-sucedida')
+    console.log('✅ Criando agendamento no banco de dados')
 
-    const newBooking = {
-      id: Date.now().toString(),
-      date: date,
-      time: time,
-      people: people,
-      menuId: menuId,
-      chefId: chefId,
-      planId: planId,
-      notes: notes || '',
-      status: 'PENDING',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    // Converter a data para o formato DateTime
+    const bookingDate = new Date(date + 'T00:00:00')
+    
+    // Buscar o menu para calcular o preço total
+    const menu = await prisma.menu.findUnique({
+      where: { id: menuId }
+    })
+
+    if (!menu) {
+      return NextResponse.json({
+        success: false,
+        message: 'Menu não encontrado'
+      }, { status: 400 })
     }
+
+    // Calcular preço total
+    const totalPrice = menu.price * people
+
+    // Criar o agendamento
+    const newBooking = await prisma.booking.create({
+      data: {
+        clientId: 'cmebe87t70001fjuic53jh9f0', // ID temporário para teste
+        chefId: chefId,
+        planId: planId,
+        menuId: menuId,
+        date: bookingDate,
+        time: time,
+        peopleCount: people,
+        totalPrice: totalPrice,
+        notes: notes || '',
+        status: 'PENDING'
+      },
+      include: {
+        client: {
+          select: {
+            name: true,
+            email: true
+          }
+        },
+        chef: {
+          select: {
+            name: true
+          }
+        },
+        plan: {
+          select: {
+            name: true
+          }
+        },
+        menu: {
+          select: {
+            name: true
+          }
+        }
+      }
+    })
+
+    // Converter para o formato esperado pelo frontend
+    const formattedBooking = {
+      id: newBooking.id,
+      title: newBooking.menu.name,
+      status: newBooking.status,
+      date: newBooking.date.toISOString().split('T')[0],
+      time: newBooking.time,
+      people: newBooking.peopleCount,
+      chef: `Chef: ${newBooking.chef.name}`,
+      chefId: newBooking.chefId,
+      notes: newBooking.notes || '',
+      price: newBooking.totalPrice,
+      plan: newBooking.plan.name
+    }
+
+    console.log('✅ Agendamento criado no banco:', formattedBooking)
 
     return NextResponse.json({
       success: true,
       message: 'Agendamento criado com sucesso!',
-      booking: newBooking
+      booking: formattedBooking
     })
 
   } catch (error) {
@@ -344,8 +470,16 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // TEMPORARIAMENTE: Simular sucesso com dados mock
-    console.log('✅ Simulando cancelamento bem-sucedido')
+    // Atualizar o status para CANCELLED no banco de dados
+    const updatedBooking = await prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'CANCELLED',
+        updatedAt: new Date()
+      }
+    })
+
+    console.log('✅ Agendamento cancelado no banco:', updatedBooking.id)
 
     return NextResponse.json({
       success: true,

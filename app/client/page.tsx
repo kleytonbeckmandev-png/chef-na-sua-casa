@@ -124,7 +124,7 @@ export default function ClientDashboard() {
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{booking.menu}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <span>{new Date(booking.date).toLocaleDateString('pt-BR')} às {booking.time}</span>
+                      <span>{new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')} às {booking.time}</span>
                       <span>{booking.peopleCount} pessoas</span>
                     </div>
                   </div>
@@ -161,7 +161,7 @@ export default function ClientDashboard() {
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{booking.menu}</p>
                     <div className="flex items-center justify-between text-sm">
-                      <span>{new Date(booking.date).toLocaleDateString('pt-BR')}</span>
+                      <span>{new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                       <span>{booking.peopleCount} pessoas</span>
                     </div>
                   </div>

@@ -255,7 +255,7 @@ export default function ChefDashboard() {
                     <div className="flex items-center justify-between text-sm">
                       <span className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1" />
-                        {new Date(booking.date).toLocaleDateString('pt-BR')} às {booking.time}
+                        {new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')} às {booking.time}
                       </span>
                       <span className="flex items-center">
                         <Users className="h-3 w-3 mr-1" />

@@ -256,7 +256,7 @@ export default function AdminDashboard() {
                     Chef: {booking.chef}
                   </p>
                   <div className="flex items-center justify-between text-sm">
-                    <span>{new Date(booking.date).toLocaleDateString('pt-BR')} às {booking.time}</span>
+                    <span>{new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')} às {booking.time}</span>
                     <span className="font-semibold">R$ {booking.amount}</span>
                   </div>
                 </div>
@@ -288,7 +288,7 @@ export default function AdminDashboard() {
                   </div>
                   <p className="text-sm text-gray-600 mb-2">{user.email}</p>
                   <p className="text-xs text-gray-500">
-                    Cadastrado em {new Date(user.joinDate).toLocaleDateString('pt-BR')}
+                    Cadastrado em {new Date(user.joinDate + 'T00:00:00').toLocaleDateString('pt-BR')}
                   </p>
                 </div>
               ))}

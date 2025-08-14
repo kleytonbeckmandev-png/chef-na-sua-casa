@@ -202,7 +202,13 @@ export default function NewBookingPage() {
             <Input
               id="date"
               type="date"
-              min={new Date().toISOString().split('T')[0]}
+              min={(() => {
+                const now = new Date()
+                const year = now.getFullYear()
+                const month = String(now.getMonth() + 1).padStart(2, '0')
+                const day = String(now.getDate()).padStart(2, '0')
+                return `${year}-${month}-${day}`
+              })()}
               value={formData.date}
               onChange={(e) => handleInputChange('date', e.target.value)}
               required
@@ -272,7 +278,7 @@ export default function NewBookingPage() {
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium">Data:</span>
-                <span>{new Date(formData.date).toLocaleDateString('pt-BR')}</span>
+                <span>{new Date(formData.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium">Horário:</span>
