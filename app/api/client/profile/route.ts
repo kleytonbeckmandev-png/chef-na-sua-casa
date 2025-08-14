@@ -7,11 +7,15 @@ const prisma = new PrismaClient()
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    console.log('🔍 Iniciando PUT /api/client/profile')
     
-    console.log('Session:', session) // Debug
+    const session = await getServerSession(authOptions)
+    console.log('📋 Session recebida:', session)
+    console.log('👤 User ID:', (session?.user as any)?.id)
+    console.log('🎭 User Role:', (session?.user as any)?.role)
     
     if (!session) {
+      console.log('❌ Sessão não encontrada')
       return NextResponse.json(
         { message: 'Sessão não encontrada' },
         { status: 401 }
@@ -19,6 +23,7 @@ export async function PUT(request: NextRequest) {
     }
 
     if ((session.user as any).role !== 'CLIENT') {
+      console.log('❌ Usuário não é cliente:', (session.user as any).role)
       return NextResponse.json(
         { message: 'Acesso negado. Apenas clientes podem atualizar perfil.' },
         { status: 403 }
@@ -26,28 +31,59 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('📝 Body recebido:', body)
     const { phone, address, dietaryPreferences } = body
 
     // Validações
     if (!phone || !address || !dietaryPreferences) {
+      console.log('❌ Campos obrigatórios faltando:', { phone, address, dietaryPreferences })
       return NextResponse.json(
         { message: 'Todos os campos são obrigatórios' },
         { status: 400 }
       )
     }
 
-    // Atualizar perfil do cliente
-    const updatedProfile = await prisma.clientProfile.update({
+    console.log('🔧 Tentando atualizar perfil para userId:', (session.user as any).id)
+
+    // Verificar se o perfil existe
+    let existingProfile = await prisma.clientProfile.findUnique({
       where: {
         userId: (session.user as any).id
-      },
-      data: {
-        phone,
-        address,
-        dietaryPreferences,
-        updatedAt: new Date()
       }
     })
+
+    let updatedProfile
+
+    if (existingProfile) {
+      // Atualizar perfil existente
+      console.log('🔄 Atualizando perfil existente')
+      updatedProfile = await prisma.clientProfile.update({
+        where: {
+          userId: (session.user as any).id
+        },
+        data: {
+          phone,
+          address,
+          dietaryPreferences,
+          updatedAt: new Date()
+        }
+      })
+    } else {
+      // Criar novo perfil
+      console.log('🆕 Criando novo perfil de cliente')
+      updatedProfile = await prisma.clientProfile.create({
+        data: {
+          userId: (session.user as any).id,
+          phone,
+          address,
+          dietaryPreferences,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        }
+      })
+    }
+
+    console.log('✅ Perfil atualizado com sucesso:', updatedProfile)
 
     return NextResponse.json({
       message: 'Perfil atualizado com sucesso',
@@ -55,9 +91,10 @@ export async function PUT(request: NextRequest) {
     }, { status: 200 })
 
   } catch (error) {
-    console.error('Erro ao atualizar perfil:', error)
+    console.error('💥 Erro detalhado ao atualizar perfil:', error)
+    console.error('📚 Stack trace:', error instanceof Error ? error.stack : 'N/A')
     return NextResponse.json(
-      { message: 'Erro interno do servidor' },
+      { message: 'Erro interno do servidor', error: error instanceof Error ? error.message : 'Erro desconhecido' },
       { status: 500 }
     )
   }
