@@ -9,10 +9,19 @@ export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || (session.user as any).role !== 'CLIENT') {
+    console.log('Session:', session) // Debug
+    
+    if (!session) {
       return NextResponse.json(
-        { message: 'Não autorizado' },
+        { message: 'Sessão não encontrada' },
         { status: 401 }
+      )
+    }
+
+    if ((session.user as any).role !== 'CLIENT') {
+      return NextResponse.json(
+        { message: 'Acesso negado. Apenas clientes podem atualizar perfil.' },
+        { status: 403 }
       )
     }
 
@@ -58,10 +67,17 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     
-    if (!session || (session.user as any).role !== 'CLIENT') {
+    if (!session) {
       return NextResponse.json(
-        { message: 'Não autorizado' },
+        { message: 'Sessão não encontrada' },
         { status: 401 }
+      )
+    }
+
+    if ((session.user as any).role !== 'CLIENT') {
+      return NextResponse.json(
+        { message: 'Acesso negado. Apenas clientes podem acessar perfil.' },
+        { status: 403 }
       )
     }
 
