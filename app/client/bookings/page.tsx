@@ -89,6 +89,36 @@ export default function ClientBookingsPage() {
       console.log('🚀 Salvando alterações do agendamento:', selectedBooking.id)
       console.log('📝 Dados para salvar:', editData)
 
+      // VALIDAÇÃO DE DATA NO FRONTEND
+      const selectedDate = new Date(editData.date)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0) // Resetar para início do dia
+      
+      if (selectedDate < today) {
+        toast({
+          title: "Data inválida",
+          description: "Não é permitido agendar datas que já passaram. Por favor, escolha uma data futura.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // VALIDAÇÃO: Se for hoje, verificar se o horário já passou
+      if (selectedDate.getTime() === today.getTime()) {
+        const currentTime = new Date()
+        const selectedTime = new Date(`2000-01-01T${editData.time}`)
+        const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
+        
+        if (selectedTime < currentTimeOnly) {
+          toast({
+            title: "Horário inválido",
+            description: "Não é permitido agendar horários que já passaram no dia atual. Por favor, escolha um horário futuro.",
+            variant: "destructive",
+          })
+          return
+        }
+      }
+
       // Chamar API para atualizar
       const response = await fetch('/api/client/bookings', {
         method: 'PUT',
@@ -333,9 +363,13 @@ export default function ClientBookingsPage() {
                                 type="date"
                                 value={editData.date}
                                 onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+                                min={new Date().toISOString().split('T')[0]} // Data mínima = hoje
                                 disabled={!isEditing}
                                 className="mt-1"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Não é permitido agendar datas passadas
+                              </p>
                             </div>
                             <div>
                               <Label htmlFor="time">Horário</Label>
@@ -347,6 +381,9 @@ export default function ClientBookingsPage() {
                                 disabled={!isEditing}
                                 className="mt-1"
                               />
+                              <p className="text-xs text-gray-500 mt-1">
+                                Para hoje, escolha apenas horários futuros
+                              </p>
                             </div>
                             <div>
                               <Label htmlFor="people">Quantidade de Pessoas</Label>
