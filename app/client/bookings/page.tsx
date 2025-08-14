@@ -153,34 +153,33 @@ export default function ClientBookingsPage() {
         const data = await response.json()
         
         if (data.success) {
+          // Criar objeto atualizado com os dados editados
           const updatedBooking = {
             ...selectedBooking,
-            ...data.booking,
-            date: editData.date,
-            time: editData.time,
-            people: editData.people,
+            date: editData.date,        // Data editada
+            time: editData.time,        // Horário editado
+            people: editData.people,    // Pessoas editadas
             title: mockMenus.find(m => m.id === editData.menuId)?.name || selectedBooking.title,
-            notes: editData.notes
+            notes: editData.notes       // Observações editadas
           }
 
           console.log('🔄 Dados atualizados:', updatedBooking)
+          console.log('📅 Data editada:', editData.date)
+          console.log('⏰ Horário editado:', editData.time)
+          console.log('👥 Pessoas editadas:', editData.people)
 
+          // Atualizar a lista de agendamentos
           setBookings(prev => {
             const newBookings = prev.map(b => 
               b.id === selectedBooking.id 
-                ? {
-                    ...b,
-                    date: editData.date,
-                    time: editData.time,
-                    people: editData.people,
-                    title: mockMenus.find(m => m.id === editData.menuId)?.name || b.title,
-                    notes: editData.notes
-                  }
+                ? updatedBooking  // Usar o objeto completo atualizado
                 : b
             )
+            console.log('📋 Lista atualizada:', newBookings)
             return newBookings
           })
 
+          // Atualizar o agendamento selecionado
           setSelectedBooking(updatedBooking)
 
           toast({
@@ -277,10 +276,20 @@ export default function ClientBookingsPage() {
   }
 
   const handleDateChange = (newDate: string) => {
+    console.log('📅 Alterando data para:', newDate)
+    
     const selectedDate = new Date(newDate)
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     
+    // Para edições de agendamentos existentes, permitir datas passadas
+    if (selectedDate < today && selectedBooking?.id) {
+      console.log('✅ Data passada permitida para edição')
+      setEditData(prev => ({ ...prev, date: newDate }))
+      return
+    }
+    
+    // Para novos agendamentos, não permitir datas passadas
     if (selectedDate < today && !selectedBooking?.id) {
       toast({
         title: "❌ **DATA INVÁLIDA**",
@@ -291,10 +300,12 @@ export default function ClientBookingsPage() {
       return
     }
     
+    console.log('✅ Data válida, atualizando estado')
     setEditData(prev => ({ ...prev, date: newDate }))
   }
 
   const handleTimeChange = (newTime: string) => {
+    console.log('⏰ Alterando horário para:', newTime)
     setEditData(prev => ({ ...prev, time: newTime }))
   }
 
