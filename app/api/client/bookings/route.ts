@@ -3,6 +3,54 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
+// Função para verificar disponibilidade do chef
+function checkChefAvailability(chefId: string, date: string, time: string, excludeBookingId?: string) {
+  // TEMPORARIAMENTE: Simular verificação de disponibilidade
+  // Em produção, isso seria uma consulta ao banco de dados
+  
+  // Simular horários de trabalho do chef (8h às 22h)
+  const selectedTime = new Date(`2000-01-01T${time}`)
+  const workStart = new Date('2000-01-01T08:00')
+  const workEnd = new Date('2000-01-01T22:00')
+  
+  // Verificar se o horário está dentro do expediente
+  if (selectedTime < workStart || selectedTime > workEnd) {
+    return {
+      available: false,
+      reason: 'Horário fora do expediente de trabalho (8h às 22h)'
+    }
+  }
+  
+  // Simular agendamentos existentes para o chef na data
+  const existingBookings = [
+    { time: '12:00', duration: 2 }, // Almoço das 12h às 14h
+    { time: '19:00', duration: 2 }, // Jantar das 19h às 21h
+  ]
+  
+  // Verificar conflitos de horário
+  for (const booking of existingBookings) {
+    const bookingStart = new Date(`2000-01-01T${booking.time}`)
+    const bookingEnd = new Date(`2000-01-01T${booking.time}`)
+    bookingEnd.setHours(bookingEnd.getHours() + booking.duration)
+    
+    const selectedEnd = new Date(selectedTime)
+    selectedEnd.setHours(selectedEnd.getHours() + 2) // Assumir 2h de duração
+    
+    // Verificar se há sobreposição
+    if (selectedTime < bookingEnd && selectedEnd > bookingStart) {
+      return {
+        available: false,
+        reason: `Conflito com agendamento existente das ${booking.time} às ${bookingEnd.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+      }
+    }
+  }
+  
+  return {
+    available: true,
+    reason: 'Horário disponível'
+  }
+}
+
 // GET - Buscar agendamentos do cliente
 export async function GET(request: NextRequest) {
   try {
@@ -18,6 +66,7 @@ export async function GET(request: NextRequest) {
         time: '19:00',
         people: 4,
         chef: 'Chef: Maria Costa',
+        chefId: 'chef-1',
         notes: 'Cliente prefere massas sem glúten',
         price: 200.00,
         plan: 'Avulso'
@@ -30,6 +79,7 @@ export async function GET(request: NextRequest) {
         time: '18:00',
         people: 2,
         chef: 'Chef: Maria Costa',
+        chefId: 'chef-1',
         notes: 'Aniversário de casamento',
         price: 140.00,
         plan: 'Mensal'
@@ -60,7 +110,7 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     console.log('📝 Body recebido:', body)
     
-    const { bookingId, date, time, people, menuId, notes } = body
+    const { bookingId, date, time, people, menuId, notes, chefId } = body
 
     // Validações
     if (!bookingId) {
@@ -89,23 +139,25 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // VALIDAÇÃO: Permitir apenas agendamento no dia atual ou futuros
+    // VALIDAÇÃO: Se for hoje, verificar disponibilidade do chef
     if (selectedDate.getTime() === today.getTime()) {
-      // Se for hoje, verificar se o horário já passou
-      const currentTime = new Date()
-      const selectedTime = new Date(`2000-01-01T${time}`)
-      const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
+      console.log('🔍 Verificando disponibilidade do chef para hoje')
       
-      if (selectedTimeOnly < currentTimeOnly) {
+      const availability = checkChefAvailability(chefId || 'chef-1', date, time, bookingId)
+      
+      if (!availability.available) {
         return NextResponse.json({
           success: false,
-          message: 'Não é permitido agendar horários que já passaram no dia atual. Por favor, escolha um horário futuro.'
+          message: `Não há horário disponível para hoje: ${availability.reason}`,
+          availability: availability
         }, { status: 400 })
       }
+      
+      console.log('✅ Chef disponível para o horário selecionado')
     }
 
     // TEMPORARIAMENTE: Simular sucesso com dados mock
-    console.log('✅ Validações de data aprovadas')
+    console.log('✅ Validações de data e disponibilidade aprovadas')
     console.log('✅ Simulando atualização bem-sucedida')
 
     const updatedBooking = {
@@ -164,23 +216,25 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // VALIDAÇÃO: Permitir apenas agendamento no dia atual ou futuros
+    // VALIDAÇÃO: Se for hoje, verificar disponibilidade do chef
     if (selectedDate.getTime() === today.getTime()) {
-      // Se for hoje, verificar se o horário já passou
-      const currentTime = new Date()
-      const selectedTime = new Date(`2000-01-01T${time}`)
-      const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
+      console.log('🔍 Verificando disponibilidade do chef para hoje')
       
-      if (selectedTimeOnly < currentTimeOnly) {
+      const availability = checkChefAvailability(chefId, date, time)
+      
+      if (!availability.available) {
         return NextResponse.json({
           success: false,
-          message: 'Não é permitido agendar horários que já passaram no dia atual. Por favor, escolha um horário futuro.'
+          message: `Não há horário disponível para hoje: ${availability.reason}`,
+          availability: availability
         }, { status: 400 })
       }
+      
+      console.log('✅ Chef disponível para o horário selecionado')
     }
 
     // TEMPORARIAMENTE: Simular sucesso com dados mock
-    console.log('✅ Validações de data aprovadas')
+    console.log('✅ Validações de data e disponibilidade aprovadas')
     console.log('✅ Simulando criação bem-sucedida')
 
     const newBooking = {
@@ -232,7 +286,7 @@ export async function DELETE(request: NextRequest) {
     console.log('✅ Simulando cancelamento bem-sucedido')
 
     return NextResponse.json({
-      success: true,
+      success: false,
       message: 'Agendamento cancelado com sucesso!',
       booking: { id: bookingId, status: 'CANCELLED' }
     })

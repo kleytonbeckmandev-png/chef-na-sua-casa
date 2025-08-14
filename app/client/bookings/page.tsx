@@ -105,22 +105,6 @@ export default function ClientBookingsPage() {
         return
       }
 
-      // VALIDAÇÃO: Se for hoje, verificar se o horário já passou
-      if (selectedDate.getTime() === today.getTime()) {
-        const currentTime = new Date()
-        const selectedTime = new Date(`2000-01-01T${editData.time}`)
-        const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
-        
-        if (selectedTime < currentTimeOnly) {
-          toast({
-            title: "❌ **HORÁRIO INVÁLIDO**",
-            description: "**Não é permitido agendar horários que já passaram no dia atual!**",
-            variant: "destructive",
-          })
-          return
-        }
-      }
-
       // Chamar API para atualizar
       const response = await fetch('/api/client/bookings', {
         method: 'PUT',
@@ -133,7 +117,8 @@ export default function ClientBookingsPage() {
           time: editData.time,
           people: editData.people,
           menuId: editData.menuId,
-          notes: editData.notes // Incluir observações
+          notes: editData.notes, // Incluir observações
+          chefId: 'chef-1' // ID do chef responsável
         }),
       })
 
@@ -221,39 +206,6 @@ export default function ClientBookingsPage() {
 
   // Função para validar horário em tempo real
   const handleTimeChange = (newTime: string) => {
-    const selectedDate = new Date(editData.date)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    // Se for hoje, verificar se o horário já passou
-    if (selectedDate.getTime() === today.getTime()) {
-      const currentTime = new Date()
-      const selectedTime = new Date(`2000-01-01T${newTime}`)
-      const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
-      
-      if (selectedTime < currentTimeOnly) {
-        // Mostrar pop-up de erro
-        toast({
-          title: "❌ **HORÁRIO INVÁLIDO**",
-          description: "**Para hoje, escolha apenas horários futuros!**",
-          variant: "destructive",
-          duration: 5000, // 5 segundos
-        })
-        
-        // Resetar para hora atual + 1 hora
-        const nextHour = new Date()
-        nextHour.setHours(nextHour.getHours() + 1)
-        nextHour.setMinutes(0)
-        nextHour.setSeconds(0)
-        
-        setEditData(prev => ({
-          ...prev,
-          time: nextHour.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-        }))
-        return
-      }
-    }
-    
     // Horário válido, atualizar normalmente
     setEditData(prev => ({
       ...prev,
@@ -389,14 +341,23 @@ export default function ClientBookingsPage() {
                           </div>
                         </div>
 
-                        {/* Informações do Chef */}
-                        <div className="p-4 bg-blue-50 rounded-lg">
-                          <h3 className="font-semibold text-blue-900 mb-2">Chef Responsável</h3>
-                          <div className="flex items-center gap-2">
-                            <ChefHat className="h-5 w-5 text-blue-600" />
-                            <span className="text-blue-800">{booking.chef}</span>
-                          </div>
-                        </div>
+                                                 {/* Informações do Chef */}
+                         <div className="p-4 bg-blue-50 rounded-lg">
+                           <h3 className="font-semibold text-blue-900 mb-2">Chef Responsável</h3>
+                           <div className="flex items-center gap-2 mb-3">
+                             <ChefHat className="h-5 w-5 text-blue-600" />
+                             <span className="text-blue-800">{booking.chef}</span>
+                           </div>
+                           <div className="text-sm text-blue-700">
+                             <p>⏰ <strong>Expediente:</strong> 8h às 22h</p>
+                             <p>📅 <strong>Disponibilidade:</strong> Verificada automaticamente</p>
+                             {editData.date === new Date().toISOString().split('T')[0] && (
+                               <p className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                                 💡 <strong>Dica:</strong> Para hoje, o sistema verifica automaticamente a disponibilidade do chef
+                               </p>
+                             )}
+                           </div>
+                         </div>
 
                         {/* Detalhes Editáveis */}
                         <div className="space-y-4">
