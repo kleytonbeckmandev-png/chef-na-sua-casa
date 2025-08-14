@@ -108,7 +108,24 @@ export default function ClientProfilePage() {
       console.log('📤 Dados sendo enviados para API:', requestBody)
       console.log('📤 JSON stringify:', JSON.stringify(requestBody))
       
-      // Chamar API para atualizar perfil
+      // Chamar API de teste primeiro
+      console.log('🧪 Testando com API de teste...')
+      const testResponse = await fetch('/api/test-profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('🧪 Resposta da API de teste:', testResponse.status)
+      if (testResponse.ok) {
+        const testData = await testResponse.json()
+        console.log('🧪 Dados da API de teste:', testData)
+      }
+      
+      // Agora chamar API real
+      console.log('🚀 Chamando API real...')
       const response = await fetch('/api/client/profile', {
         method: 'PUT',
         headers: {
