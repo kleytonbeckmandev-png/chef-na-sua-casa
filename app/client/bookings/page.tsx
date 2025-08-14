@@ -433,35 +433,29 @@ export default function ClientBookingsPage() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label htmlFor="date">Data</Label>
-                              <Input
-                                id="date"
-                                type="date"
-                                value={editData.date}
-                                onChange={(e) => handleDateChange(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]} // Data mínima = hoje
-                                disabled={!isEditing}
-                                className="mt-1"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Não é permitido agendar datas passadas
-                              </p>
-                            </div>
-                            <div>
-                              <Label htmlFor="time">Horário</Label>
-                              <Input
-                                id="time"
-                                type="time"
-                                value={editData.time}
-                                onChange={(e) => handleTimeChange(e.target.value)}
-                                disabled={!isEditing}
-                                className="mt-1"
-                              />
-                              <p className="text-xs text-gray-500 mt-1">
-                                Para hoje, escolha apenas horários futuros
-                              </p>
-                            </div>
+                                                         <div>
+                               <Label htmlFor="date">Data</Label>
+                               <Input
+                                 id="date"
+                                 type="date"
+                                 value={editData.date}
+                                 onChange={(e) => handleDateChange(e.target.value)}
+                                 min={new Date().toISOString().split('T')[0]} // Data mínima = hoje
+                                 disabled={!isEditing}
+                                 className="mt-1"
+                               />
+                             </div>
+                                                         <div>
+                               <Label htmlFor="time">Horário</Label>
+                               <Input
+                                 id="time"
+                                 type="time"
+                                 value={editData.time}
+                                 onChange={(e) => handleTimeChange(e.target.value)}
+                                 disabled={!isEditing}
+                                 className="mt-1"
+                               />
+                             </div>
                             <div>
                               <Label htmlFor="people">Quantidade de Pessoas</Label>
                               <Input
