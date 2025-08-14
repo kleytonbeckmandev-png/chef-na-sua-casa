@@ -41,25 +41,43 @@ export default function ClientProfilePage() {
 
   const fetchProfile = async () => {
     try {
-      // Simular dados do perfil (em produção, isso viria da API)
-      const mockProfile: ClientProfile = {
-        id: 'profile-1',
-        userId: 'user-1',
-        dietaryPreferences: 'Vegetariano, Sem glúten',
-        address: 'Res. Portal do Paço 3 - Rua 31 Quadra 15',
-        phone: '98981302035',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      }
+      // Buscar perfil real da API
+      const response = await fetch('/api/client/profile')
+      
+      if (response.ok) {
+        const data = await response.json()
+        const apiProfile = data.profile
+        
+        setProfile(apiProfile)
+        setFormData({
+          name: session?.user?.name || '',
+          email: session?.user?.email || '',
+          phone: apiProfile.phone,
+          address: apiProfile.address,
+          dietaryPreferences: apiProfile.dietaryPreferences
+        })
+      } else {
+        // Fallback para dados mock se a API falhar
+        const mockProfile: ClientProfile = {
+          id: 'profile-1',
+          userId: 'user-1',
+          dietaryPreferences: 'Vegetariano, Sem glúten',
+          address: 'Res. Portal do Paço 3 - Rua 31 Quadra 15',
+          phone: '98981302035',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
 
-      setProfile(mockProfile)
-      setFormData({
-        name: session?.user?.name || '',
-        email: session?.user?.email || '',
-        phone: mockProfile.phone,
-        address: mockProfile.address,
-        dietaryPreferences: mockProfile.dietaryPreferences
-      })
+        setProfile(mockProfile)
+        setFormData({
+          name: session?.user?.name || '',
+          email: session?.user?.email || '',
+          phone: mockProfile.phone,
+          address: mockProfile.address,
+          dietaryPreferences: mockProfile.dietaryPreferences
+        })
+      }
+      
       setIsLoading(false)
     } catch (error) {
       console.error('Erro ao carregar perfil:', error)
@@ -69,19 +87,49 @@ export default function ClientProfilePage() {
 
   const handleSave = async () => {
     try {
-      // Simular salvamento (em produção, isso seria uma chamada para a API)
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      toast({
-        title: "Perfil atualizado!",
-        description: "Suas informações foram salvas com sucesso.",
+      // Chamar API para atualizar perfil
+      const response = await fetch('/api/client/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: formData.phone,
+          address: formData.address,
+          dietaryPreferences: formData.dietaryPreferences,
+        }),
       })
-      
-      setIsEditing(false)
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        // Atualizar estado local com dados da API
+        setProfile(prevProfile => {
+          if (!prevProfile) return prevProfile
+          return {
+            ...prevProfile,
+            phone: formData.phone,
+            address: formData.address,
+            dietaryPreferences: formData.dietaryPreferences,
+            updatedAt: new Date().toISOString()
+          }
+        })
+        
+        toast({
+          title: "Perfil atualizado!",
+          description: "Suas informações foram salvas com sucesso.",
+        })
+        
+        setIsEditing(false)
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erro ao atualizar perfil')
+      }
     } catch (error) {
+      console.error('Erro ao salvar perfil:', error)
       toast({
         title: "Erro ao salvar",
-        description: "Não foi possível salvar suas informações. Tente novamente.",
+        description: error instanceof Error ? error.message : "Não foi possível salvar suas informações. Tente novamente.",
         variant: "destructive",
       })
     }
