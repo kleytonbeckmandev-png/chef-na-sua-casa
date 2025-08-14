@@ -100,6 +100,17 @@ export default function ClientBookingsPage() {
     })
     setIsEditing(false)
     setIsModalOpen(true) // Abrir o modal
+    
+    console.log('🔧 Estado atualizado:')
+    console.log('  - selectedBooking:', booking)
+    console.log('  - isModalOpen:', true)
+    console.log('  - editData:', {
+      date: booking.date,
+      time: booking.time,
+      people: booking.people,
+      menuId: mockMenus.find(m => m.name === booking.title)?.id || '',
+      notes: booking.notes || ''
+    })
   }
 
   const handleSaveChanges = async () => {
@@ -255,6 +266,56 @@ export default function ClientBookingsPage() {
     setIsEditing(false)
   }
 
+  // Função para cancelar agendamento
+  const handleCancelBooking = async (bookingId: string) => {
+    try {
+      console.log('🚫 Cancelando agendamento:', bookingId)
+      
+      // Chamar API para cancelar
+      const response = await fetch(`/api/client/bookings?id=${bookingId}`, {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (data.success) {
+          console.log('✅ API retornou sucesso, atualizando estado local...')
+          
+          // Atualizar estado local
+          setBookings(prev => {
+            const updatedBookings = prev.map(b => 
+              b.id === bookingId 
+                ? { ...b, status: 'CANCELLED' as const }
+                : b
+            )
+            console.log('🔄 Estado atualizado:', updatedBookings)
+            return updatedBookings
+          })
+
+          toast({
+            title: "✅ Agendamento cancelado!",
+            description: "O agendamento foi cancelado com sucesso.",
+          })
+          
+          console.log('🎉 Cancelamento concluído com sucesso!')
+        } else {
+          throw new Error(data.message || 'Erro ao cancelar agendamento')
+        }
+      } else {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Erro ao cancelar agendamento')
+      }
+    } catch (error) {
+      console.error('Erro ao cancelar agendamento:', error)
+      toast({
+        title: "❌ Erro ao cancelar",
+        description: error instanceof Error ? error.message : "Não foi possível cancelar o agendamento. Tente novamente.",
+        variant: "destructive",
+      })
+    }
+  }
+
   // Função para validar data em tempo real
   const handleDateChange = (newDate: string) => {
     const selectedDate = new Date(newDate)
@@ -399,19 +460,20 @@ export default function ClientBookingsPage() {
                   </div>
                 )}
                 <div className="flex gap-2">
-                                     <Dialog open={isModalOpen && selectedBooking?.id === booking.id} onOpenChange={handleCloseModal}>
-                     <DialogTrigger asChild>
-                       <Button 
-                         variant="outline" 
-                         onClick={() => handleViewDetails(booking)}
-                       >
-                         <Eye className="h-4 w-4 mr-2" />
-                         Ver Detalhes
-                       </Button>
-                     </DialogTrigger>
-                     <DialogContent className="max-w-2xl">
+                  <Dialog open={isModalOpen && selectedBooking?.id === booking.id} onOpenChange={handleCloseModal}>
+                    <DialogTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => handleViewDetails(booking)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        Ver Detalhes
+                      </Button>
+                    </DialogTrigger>
+                    {selectedBooking && (
+                      <DialogContent className="max-w-2xl">
                       <DialogHeader>
-                        <DialogTitle className="text-2xl">{booking.title}</DialogTitle>
+                        <DialogTitle className="text-2xl">{selectedBooking?.title}</DialogTitle>
                         <DialogDescription>
                           Detalhes completos do seu agendamento
                         </DialogDescription>
@@ -422,39 +484,39 @@ export default function ClientBookingsPage() {
                         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                           <div>
                             <p className="text-sm text-gray-600">Status</p>
-                            {getStatusBadge(booking.status)}
+                            {selectedBooking && getStatusBadge(selectedBooking.status)}
                           </div>
                           <div className="text-right">
                             <p className="text-sm text-gray-600">Valor</p>
                             <p className="text-2xl font-bold text-orange-600">
-                              R$ {booking.price.toFixed(2)}
+                              R$ {selectedBooking?.price.toFixed(2)}
                             </p>
-                            <p className="text-sm text-gray-500">{booking.plan}</p>
+                            <p className="text-sm text-gray-500">{selectedBooking?.plan}</p>
                           </div>
                         </div>
 
-                                                 {/* Informações do Chef */}
-                         <div className="p-4 bg-blue-50 rounded-lg">
-                           <h3 className="font-semibold text-blue-900 mb-2">Chef Responsável</h3>
-                           <div className="flex items-center gap-2 mb-3">
-                             <ChefHat className="h-5 w-5 text-blue-600" />
-                             <span className="text-blue-800">{booking.chef}</span>
-                           </div>
-                           <div className="text-sm text-blue-700">
-                             <p>⏰ <strong>Expediente:</strong> 8h às 22h</p>
-                             <p>📅 <strong>Disponibilidade:</strong> Verificada automaticamente</p>
-                             {editData.date === new Date().toISOString().split('T')[0] && (
-                               <p className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
-                                 💡 <strong>Dica:</strong> Para hoje, o sistema verifica automaticamente a disponibilidade do chef
-                               </p>
-                             )}
-                             {new Date(editData.date) < new Date() && (
-                               <p className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800">
-                                 ✅ <strong>Edição permitida:</strong> Você pode editar agendamentos passados
-                               </p>
-                             )}
-                           </div>
-                         </div>
+                        {/* Informações do Chef */}
+                        <div className="p-4 bg-blue-50 rounded-lg">
+                          <h3 className="font-semibold text-blue-900 mb-2">Chef Responsável</h3>
+                          <div className="flex items-center gap-2 mb-3">
+                            <ChefHat className="h-5 w-5 text-blue-600" />
+                            <span className="text-blue-800">{selectedBooking?.chef}</span>
+                          </div>
+                          <div className="text-sm text-blue-700">
+                            <p>⏰ <strong>Expediente:</strong> 8h às 22h</p>
+                            <p>📅 <strong>Disponibilidade:</strong> Verificada automaticamente</p>
+                            {editData.date === new Date().toISOString().split('T')[0] && (
+                              <p className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800">
+                                💡 <strong>Dica:</strong> Para hoje, o sistema verifica automaticamente a disponibilidade do chef
+                              </p>
+                            )}
+                            {new Date(editData.date) < new Date() && (
+                              <p className="mt-2 p-2 bg-green-50 border border-green-200 rounded text-green-800">
+                                ✅ <strong>Edição permitida:</strong> Você pode editar agendamentos passados
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
                         {/* Detalhes Editáveis */}
                         <div className="space-y-4">
@@ -581,10 +643,15 @@ export default function ClientBookingsPage() {
                          </div>
                       </div>
                     </DialogContent>
+                    )}
                   </Dialog>
                   
                   {booking.status === 'PENDING' && (
-                    <Button variant="destructive" size="sm">
+                    <Button 
+                      variant="destructive" 
+                      size="sm"
+                      onClick={() => handleCancelBooking(booking.id)}
+                    >
                       Cancelar
                     </Button>
                   )}
@@ -636,7 +703,11 @@ export default function ClientBookingsPage() {
                 <div className="flex gap-2">
                   <Dialog>
                     <DialogTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewDetails(booking)}
+                      >
                         <Eye className="h-4 w-4 mr-2" />
                         Ver Detalhes
                       </Button>
@@ -708,7 +779,11 @@ export default function ClientBookingsPage() {
                   <div className="flex gap-2">
                     <Dialog>
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewDetails(booking)}
+                        >
                           <Eye className="h-4 w-4 mr-2" />
                           Ver Detalhes
                         </Button>
