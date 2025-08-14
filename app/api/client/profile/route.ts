@@ -32,11 +32,11 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json()
     console.log('📝 Body recebido:', body)
-    const { phone, address, dietaryPreferences } = body
+    const { name, phone, address, dietaryPreferences } = body
 
     // Validações
-    if (!phone || !address || !dietaryPreferences) {
-      console.log('❌ Campos obrigatórios faltando:', { phone, address, dietaryPreferences })
+    if (!name || !phone || !address || !dietaryPreferences) {
+      console.log('❌ Campos obrigatórios faltando:', { name, phone, address, dietaryPreferences })
       return NextResponse.json(
         { message: 'Todos os campos são obrigatórios' },
         { status: 400 }
@@ -53,6 +53,17 @@ export async function PUT(request: NextRequest) {
     })
 
     let updatedProfile
+
+    // Primeiro, atualizar o nome do usuário
+    console.log('👤 Atualizando nome do usuário para:', name)
+    await prisma.user.update({
+      where: {
+        id: (session.user as any).id
+      },
+      data: {
+        name: name
+      }
+    })
 
     if (existingProfile) {
       // Atualizar perfil existente
@@ -87,7 +98,10 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({
       message: 'Perfil atualizado com sucesso',
-      profile: updatedProfile
+      profile: updatedProfile,
+      user: {
+        name: name
+      }
     }, { status: 200 })
 
   } catch (error) {

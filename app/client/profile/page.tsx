@@ -94,6 +94,7 @@ export default function ClientProfilePage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          name: formData.name,
           phone: formData.phone,
           address: formData.address,
           dietaryPreferences: formData.dietaryPreferences,
@@ -114,6 +115,12 @@ export default function ClientProfilePage() {
             updatedAt: new Date().toISOString()
           }
         })
+        
+        // Atualizar o nome na sessão se foi alterado
+        if (data.user?.name && data.user.name !== session?.user?.name) {
+          // Forçar refresh da sessão para atualizar o nome
+          window.location.reload()
+        }
         
         toast({
           title: "Perfil atualizado!",
