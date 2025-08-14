@@ -65,8 +65,8 @@ export default function ClientBookingsPage() {
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({
-    date: '',
-    time: '',
+    date: new Date().toISOString().split('T')[0], // Data atual por padrão
+    time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Hora atual por padrão
     people: 1,
     menuId: ''
   })
@@ -74,8 +74,8 @@ export default function ClientBookingsPage() {
   const handleViewDetails = (booking: Booking) => {
     setSelectedBooking(booking)
     setEditData({
-      date: booking.date,
-      time: booking.time,
+      date: new Date().toISOString().split('T')[0], // Sempre data atual
+      time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
       people: booking.people,
       menuId: mockMenus.find(m => m.name === booking.title)?.id || ''
     })
@@ -96,8 +96,8 @@ export default function ClientBookingsPage() {
       
       if (selectedDate < today) {
         toast({
-          title: "Data inválida",
-          description: "Não é permitido agendar datas que já passaram. Por favor, escolha uma data futura.",
+          title: "❌ **DATA INVÁLIDA**",
+          description: "**Não é permitido agendar datas que já passaram!**",
           variant: "destructive",
         })
         return
@@ -111,8 +111,8 @@ export default function ClientBookingsPage() {
         
         if (selectedTime < currentTimeOnly) {
           toast({
-            title: "Horário inválido",
-            description: "Não é permitido agendar horários que já passaram no dia atual. Por favor, escolha um horário futuro.",
+            title: "❌ **HORÁRIO INVÁLIDO**",
+            description: "**Não é permitido agendar horários que já passaram no dia atual!**",
             variant: "destructive",
           })
           return
@@ -175,13 +175,85 @@ export default function ClientBookingsPage() {
   const handleCancelEdit = () => {
     if (selectedBooking) {
       setEditData({
-        date: selectedBooking.date,
-        time: selectedBooking.time,
+        date: new Date().toISOString().split('T')[0], // Sempre data atual
+        time: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }), // Sempre hora atual
         people: selectedBooking.people,
         menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || ''
       })
     }
     setIsEditing(false)
+  }
+
+  // Função para validar data em tempo real
+  const handleDateChange = (newDate: string) => {
+    const selectedDate = new Date(newDate)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    if (selectedDate < today) {
+      // Mostrar pop-up de erro
+              toast({
+          title: "❌ **DATA INVÁLIDA**",
+          description: "**Não é possível agendar uma data passada!**",
+          variant: "destructive",
+          duration: 5000, // 5 segundos
+        })
+      
+      // Resetar para data atual
+      setEditData(prev => ({
+        ...prev,
+        date: new Date().toISOString().split('T')[0]
+      }))
+      return
+    }
+    
+    // Data válida, atualizar normalmente
+    setEditData(prev => ({
+      ...prev,
+      date: newDate
+    }))
+  }
+
+  // Função para validar horário em tempo real
+  const handleTimeChange = (newTime: string) => {
+    const selectedDate = new Date(editData.date)
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    // Se for hoje, verificar se o horário já passou
+    if (selectedDate.getTime() === today.getTime()) {
+      const currentTime = new Date()
+      const selectedTime = new Date(`2000-01-01T${newTime}`)
+      const currentTimeOnly = new Date(`2000-01-01T${currentTime.getHours().toString().padStart(2, '0')}:${currentTime.getMinutes().toString().padStart(2, '0')}`)
+      
+      if (selectedTime < currentTimeOnly) {
+        // Mostrar pop-up de erro
+        toast({
+          title: "❌ **HORÁRIO INVÁLIDO**",
+          description: "**Para hoje, escolha apenas horários futuros!**",
+          variant: "destructive",
+          duration: 5000, // 5 segundos
+        })
+        
+        // Resetar para hora atual + 1 hora
+        const nextHour = new Date()
+        nextHour.setHours(nextHour.getHours() + 1)
+        nextHour.setMinutes(0)
+        nextHour.setSeconds(0)
+        
+        setEditData(prev => ({
+          ...prev,
+          time: nextHour.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        }))
+        return
+      }
+    }
+    
+    // Horário válido, atualizar normalmente
+    setEditData(prev => ({
+      ...prev,
+      time: newTime
+    }))
   }
 
   const getStatusBadge = (status: string) => {
@@ -362,7 +434,7 @@ export default function ClientBookingsPage() {
                                 id="date"
                                 type="date"
                                 value={editData.date}
-                                onChange={(e) => setEditData({ ...editData, date: e.target.value })}
+                                onChange={(e) => handleDateChange(e.target.value)}
                                 min={new Date().toISOString().split('T')[0]} // Data mínima = hoje
                                 disabled={!isEditing}
                                 className="mt-1"
@@ -377,7 +449,7 @@ export default function ClientBookingsPage() {
                                 id="time"
                                 type="time"
                                 value={editData.time}
-                                onChange={(e) => setEditData({ ...editData, time: e.target.value })}
+                                onChange={(e) => handleTimeChange(e.target.value)}
                                 disabled={!isEditing}
                                 className="mt-1"
                               />
