@@ -90,26 +90,29 @@ export default function ClientBookingsPage() {
     console.log('📅 Data do agendamento:', booking.date)
     console.log('⏰ Horário do agendamento:', booking.time)
     
-    setSelectedBooking(booking)
-    setEditData({
+    // Primeiro, atualizar o editData para garantir sincronização
+    const newEditData = {
       date: booking.date,
       time: booking.time,
       people: booking.people,
       menuId: mockMenus.find(m => m.name === booking.title)?.id || '',
       notes: booking.notes || ''
-    })
+    }
+    
+    setEditData(newEditData)
+    setSelectedBooking(booking)
     setIsEditing(false)
     setIsModalOpen(true)
     
     console.log('🔧 Estado atualizado:')
     console.log('  - selectedBooking:', booking)
     console.log('  - isModalOpen:', true)
-    console.log('  - editData:', {
-      date: booking.date,
-      time: booking.time,
-      people: booking.people,
-      menuId: mockMenus.find(m => m.name === booking.title)?.id || '',
-      notes: booking.notes || ''
+    console.log('  - editData:', newEditData)
+    console.log('  - Sincronização verificada:', {
+      'selectedBooking.date': booking.date,
+      'editData.date': newEditData.date,
+      'selectedBooking.time': booking.time,
+      'editData.time': newEditData.time
     })
   }
 
@@ -168,7 +171,7 @@ export default function ClientBookingsPage() {
           console.log('⏰ Horário editado:', editData.time)
           console.log('👥 Pessoas editadas:', editData.people)
 
-          // Atualizar a lista de agendamentos
+          // Atualizar a lista de agendamentos PRIMEIRO
           setBookings(prev => {
             const newBookings = prev.map(b => 
               b.id === selectedBooking.id 
@@ -176,11 +179,16 @@ export default function ClientBookingsPage() {
                 : b
             )
             console.log('📋 Lista atualizada:', newBookings)
+            console.log('📅 Data na lista:', newBookings.find(b => b.id === selectedBooking.id)?.date)
+            console.log('⏰ Horário na lista:', newBookings.find(b => b.id === selectedBooking.id)?.time)
             return newBookings
           })
 
-          // Atualizar o agendamento selecionado
-          setSelectedBooking(updatedBooking)
+          // Aguardar a atualização da lista antes de atualizar o selectedBooking
+          setTimeout(() => {
+            setSelectedBooking(updatedBooking)
+            console.log('✅ selectedBooking atualizado:', updatedBooking)
+          }, 100)
 
           toast({
             title: "✅ Sucesso!",
@@ -211,12 +219,25 @@ export default function ClientBookingsPage() {
 
   const handleCancelEdit = () => {
     if (selectedBooking) {
-      setEditData({
+      console.log('🔄 Cancelando edição, restaurando dados originais')
+      console.log('📅 Data original:', selectedBooking.date)
+      console.log('⏰ Horário original:', selectedBooking.time)
+      
+      const restoredEditData = {
         date: selectedBooking.date,
         time: selectedBooking.time,
         people: selectedBooking.people,
         menuId: mockMenus.find(m => m.name === selectedBooking.title)?.id || '',
         notes: selectedBooking.notes || ''
+      }
+      
+      setEditData(restoredEditData)
+      console.log('✅ Dados restaurados:', restoredEditData)
+      console.log('🔍 Sincronização verificada:', {
+        'selectedBooking.date': selectedBooking.date,
+        'editData.date': restoredEditData.date,
+        'selectedBooking.time': selectedBooking.time,
+        'editData.time': restoredEditData.time
       })
     }
     setIsEditing(false)
@@ -595,6 +616,13 @@ export default function ClientBookingsPage() {
 
                 {/* Detalhes Editáveis */}
                 <div className="space-y-4">
+                  {/* Verificação de Sincronização */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="p-2 bg-gray-100 rounded text-xs text-gray-600">
+                      🔍 <strong>Debug:</strong> selectedBooking.date: {selectedBooking.date} | editData.date: {editData.date} | selectedBooking.time: {selectedBooking.time} | editData.time: {editData.time}
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Detalhes do Agendamento</h3>
                     {!isEditing ? (

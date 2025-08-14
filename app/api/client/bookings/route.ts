@@ -209,6 +209,11 @@ export async function PUT(request: NextRequest) {
       mockBookings[bookingIndex] = updatedBooking
       console.log('💾 Dados mock atualizados localmente')
       console.log('📋 Mock atualizado:', mockBookings[bookingIndex])
+      console.log('🔍 Verificação final dos dados mock:')
+      console.log('  - Data:', mockBookings[bookingIndex].date)
+      console.log('  - Horário:', mockBookings[bookingIndex].time)
+      console.log('  - Pessoas:', mockBookings[bookingIndex].people)
+      console.log('  - Observações:', mockBookings[bookingIndex].notes)
     }
 
     return NextResponse.json({
