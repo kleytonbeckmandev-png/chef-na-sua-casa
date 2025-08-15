@@ -26,7 +26,7 @@ export default function NewBookingPage() {
 
   // Dados mockados para demonstração
   const plans = [
-    { id: '1', name: 'Avulso', description: '1 refeição', price: 150, duration: 1 },
+    { id: '1', name: 'Avulso', description: '1 refeição personalizada', price: null, duration: 1, discount: 0 },
     { id: '2', name: 'Mensal', description: '4 refeições por mês', price: 520, duration: 30, discount: 15 },
     { id: '3', name: 'Trimestral', description: '12 refeições por trimestre', price: 1350, duration: 90, discount: 25 }
   ]
@@ -48,6 +48,20 @@ export default function NewBookingPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
+    
+    // Validar data em tempo real se for uma data e um plano estiver selecionado
+    if (field === 'date' && formData.plan) {
+      const validation = validatePlanDate(value, formData.plan)
+      if (!validation.valid) {
+        toast({
+          title: "Data inválida",
+          description: validation.message,
+          variant: "destructive",
+        })
+        // Resetar a data se for inválida
+        setFormData(prev => ({ ...prev, date: '' }))
+      }
+    }
   }
 
   const calculateTotal = () => {
@@ -57,6 +71,12 @@ export default function NewBookingPage() {
 
     if (!selectedPlan || !selectedMenu) return 0
 
+    // Para plano avulso, calcular baseado no cardápio e pessoas
+    if (selectedPlan.id === '1') {
+      return selectedMenu.price * peopleCount
+    }
+
+    // Para outros planos, aplicar desconto se houver
     let basePrice = selectedMenu.price * peopleCount
     if (selectedPlan.discount) {
       basePrice = basePrice * (1 - selectedPlan.discount / 100)
@@ -64,24 +84,110 @@ export default function NewBookingPage() {
     return basePrice
   }
 
+  // Função para validar se a data selecionada está dentro da duração do plano
+  const validatePlanDate = (selectedDate: string, planId: string) => {
+    const selectedPlan = plans.find(p => p.id === planId)
+    if (!selectedPlan) return { valid: true, message: '' }
+
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    
+    const bookingDate = new Date(selectedDate + 'T00:00:00')
+
+    // Apenas validar que não seja uma data passada
+    // A duração do plano não deve limitar quando o usuário pode agendar
+    if (bookingDate < today) {
+      return { 
+        valid: false, 
+        message: `Não é permitido agendar datas passadas.` 
+      }
+    }
+
+    return { valid: true, message: '' }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Simular criação do agendamento
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      console.log('🚀 Criando novo agendamento...')
+      console.log('📝 Dados do formulário:', formData)
+      console.log('🔍 Validação dos campos:')
+      console.log('  - Plan:', formData.plan ? '✅' : '❌')
+      console.log('  - Menu:', formData.menu ? '✅' : '❌')
+      console.log('  - People:', formData.peopleCount ? '✅' : '❌')
+      console.log('  - Date:', formData.date ? '✅' : '❌')
+      console.log('  - Time:', formData.time ? '✅' : '❌')
+      
+      // Validar dados obrigatórios
+      if (!formData.plan || !formData.menu || !formData.peopleCount || !formData.date || !formData.time) {
+        const missingFields = []
+        if (!formData.plan) missingFields.push('Plano')
+        if (!formData.menu) missingFields.push('Cardápio')
+        if (!formData.peopleCount) missingFields.push('Número de Pessoas')
+        if (!formData.date) missingFields.push('Data')
+        if (!formData.time) missingFields.push('Horário')
+        
+        throw new Error(`Campos obrigatórios não preenchidos: ${missingFields.join(', ')}`)
+      }
+
+      // Validar se a data está dentro da duração do plano
+      const dateValidation = validatePlanDate(formData.date, formData.plan)
+      if (!dateValidation.valid) {
+        throw new Error(dateValidation.message)
+      }
+
+      // Calcular preço total
+      const totalPrice = calculateTotal()
+      console.log('💰 Preço total calculado:', totalPrice)
+
+      // Criar agendamento via API
+      const requestBody = {
+        planId: formData.plan,
+        menuId: formData.menu,
+        peopleCount: parseInt(formData.peopleCount),
+        date: formData.date,
+        time: formData.time,
+        notes: formData.notes,
+        chefId: 'cmebe87ts0003fjui0b7ejc9k', // ID do chef mockado
+        totalPrice: totalPrice
+      }
+      
+      console.log('📤 Dados sendo enviados para a API:', requestBody)
+      
+      const response = await fetch('/api/client/bookings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+
+      console.log('📡 Resposta da API:', response.status, response.statusText)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('❌ Erro da API:', errorData)
+        throw new Error(errorData.message || 'Erro ao criar agendamento')
+      }
+
+      const result = await response.json()
+      console.log('✅ Agendamento criado com sucesso:', result)
       
       toast({
         title: "Sucesso!",
         description: "Agendamento criado com sucesso! Em breve você receberá a confirmação.",
       })
       
+      // Redirecionar para a lista de agendamentos
       router.push('/client/bookings')
+      
     } catch (error) {
+      console.error('❌ Erro ao criar agendamento:', error)
       toast({
         title: "Erro",
-        description: "Ocorreu um erro ao criar o agendamento",
+        description: error instanceof Error ? error.message : "Ocorreu um erro ao criar o agendamento",
         variant: "destructive",
       })
     } finally {
@@ -109,14 +215,26 @@ export default function NewBookingPage() {
                 <CardDescription>{plan.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-orange-600">
-                  R$ {plan.price}
-                </div>
-                {plan.discount && (
+                {plan.price ? (
+                  <div className="text-2xl font-bold text-orange-600">
+                    R$ {plan.price}
+                  </div>
+                ) : (
+                  <div className="text-lg font-semibold text-gray-600">
+                    Preço calculado por refeição
+                  </div>
+                )}
+                {plan.discount && plan.discount > 0 && (
                   <div className="text-sm text-green-600">
                     {plan.discount}% de desconto
                   </div>
                 )}
+                <div className="text-sm text-gray-600 mt-2">
+                  <strong>Validade:</strong> {plan.duration} {plan.duration === 1 ? 'dia' : 'dias'}
+                </div>
+                <div className="text-xs text-gray-500 mt-1">
+                  Plano válido por {plan.duration} {plan.duration === 1 ? 'dia' : 'dias'} após a compra
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -176,6 +294,21 @@ export default function NewBookingPage() {
             required
           />
         </div>
+        
+        {/* Mostrar preço calculado para plano avulso */}
+        {formData.plan === '1' && formData.menu && formData.peopleCount && (
+          <div className="space-y-2">
+            <Label>Preço Calculado</Label>
+            <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
+              <div className="text-2xl font-bold text-orange-600">
+                R$ {calculateTotal().toFixed(2)}
+              </div>
+              <div className="text-sm text-gray-600">
+                {formData.peopleCount} pessoa{formData.peopleCount > 1 ? 's' : ''} × R$ {menus.find(m => m.id === formData.menu)?.price}/pessoa
+              </div>
+            </div>
+          </div>
+        )}
       </div>
       
       <div className="flex justify-between">
@@ -213,6 +346,11 @@ export default function NewBookingPage() {
               onChange={(e) => handleInputChange('date', e.target.value)}
               required
             />
+            {formData.plan && (
+              <div className="text-xs text-gray-500">
+                <strong>Dica:</strong> Você pode agendar para qualquer data futura com o plano {plans.find(p => p.id === formData.plan)?.name}
+              </div>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -295,6 +433,16 @@ export default function NewBookingPage() {
                   <span>Total:</span>
                   <span className="text-orange-600">R$ {calculateTotal().toFixed(2)}</span>
                 </div>
+                {formData.plan === '1' && (
+                  <div className="text-sm text-gray-600 mt-2">
+                    {formData.peopleCount} pessoa{formData.peopleCount > 1 ? 's' : ''} × R$ {menus.find(m => m.id === formData.menu)?.price}/pessoa
+                  </div>
+                )}
+                {formData.plan !== '1' && plans.find(p => p.id === formData.plan)?.discount && plans.find(p => p.id === formData.plan)?.discount > 0 && (
+                  <div className="text-sm text-green-600 mt-2">
+                    {plans.find(p => p.id === formData.plan)?.discount}% de desconto aplicado
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

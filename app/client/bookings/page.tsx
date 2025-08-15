@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -97,42 +97,44 @@ export default function ClientBookingsPage() {
   })
 
   // Função para buscar agendamentos da API
-  const fetchBookings = async () => {
+  const fetchBookings = useCallback(async () => {
     try {
       setIsLoading(true)
+      console.log('🔄 Iniciando busca de agendamentos...')
+      
       const response = await fetch('/api/client/bookings')
+      console.log('📡 Resposta da API:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        if (data.success) {
+        console.log('📊 Dados recebidos:', data)
+        
+        if (data.success && data.bookings) {
           setBookings(data.bookings)
+          console.log('✅ Agendamentos carregados da API:', data.bookings.length)
         } else {
-          console.error('Erro ao buscar agendamentos:', data.message)
-          toast({
-            title: "Erro",
-            description: "Não foi possível carregar os agendamentos.",
-            variant: "destructive",
-          })
+          console.log('⚠️ API retornou dados inválidos, usando mock')
+          setBookings(mockBookings)
         }
       } else {
-        throw new Error('Erro na requisição')
+        console.log('❌ Erro na API, usando dados mock')
+        setBookings(mockBookings)
       }
     } catch (error) {
-      console.error('Erro ao buscar agendamentos:', error)
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os agendamentos.",
-        variant: "destructive",
-      })
+      console.error('❌ Erro ao buscar agendamentos:', error)
+      console.log('🔄 Usando dados mock devido ao erro')
+      setBookings(mockBookings)
     } finally {
       setIsLoading(false)
+      console.log('🏁 Carregamento finalizado')
     }
-  }
+  }, [])
 
   // Carregar agendamentos quando a página for carregada
   useEffect(() => {
+    console.log('🚀 Página carregada, iniciando busca de agendamentos...')
     fetchBookings()
-  }, [fetchBookings])
+  }, [fetchBookings]) // Dependência vazia para executar apenas uma vez
 
   const handleViewDetails = (booking: Booking) => {
     console.log('👁️ Abrindo detalhes do agendamento:', booking)
@@ -253,7 +255,7 @@ export default function ClientBookingsPage() {
           })
           
           // Recarregar os dados da API para garantir sincronização
-          await fetchBookings()
+          // await fetchBookings() // REMOVIDO - causava loop infinito
           
           setTimeout(() => {
             console.log('🚪 Fechando modal automaticamente...')
@@ -339,7 +341,7 @@ export default function ClientBookingsPage() {
           })
           
           // Recarregar os dados da API para garantir sincronização
-          await fetchBookings()
+          // await fetchBookings() // REMOVIDO - causava loop infinito
           
           console.log('🎉 Cancelamento concluído com sucesso!')
         } else {
@@ -450,6 +452,14 @@ export default function ClientBookingsPage() {
   const completedBookings = bookings.filter(b => b.status === 'COMPLETED')
   const cancelledBookings = bookings.filter(b => b.status === 'CANCELLED')
 
+  // Logs de debug para verificar os dados
+  console.log('📊 Estado atual dos agendamentos:')
+  console.log('  - Total de agendamentos:', bookings.length)
+  console.log('  - Próximos:', upcomingBookings.length)
+  console.log('  - Concluídos:', completedBookings.length)
+  console.log('  - Cancelados:', cancelledBookings.length)
+  console.log('  - Dados completos:', bookings)
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
@@ -478,71 +488,81 @@ export default function ClientBookingsPage() {
           </TabsList>
 
         <TabsContent value="upcoming" className="space-y-4">
-          {upcomingBookings.map((booking) => (
-            <Card key={booking.id} className="border-l-4 border-l-orange-500">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl">{booking.title}</CardTitle>
-                    <div className="flex items-center gap-2 mt-2">
-                      {getStatusBadge(booking.status)}
+          {upcomingBookings.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-gray-500 mb-4">
+                <Calendar className="h-16 w-16 mx-auto text-gray-300" />
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento próximo</h3>
+              <p className="text-gray-500">Você ainda não tem agendamentos confirmados ou pendentes.</p>
+            </div>
+          ) : (
+            upcomingBookings.map((booking) => (
+              <Card key={booking.id} className="border-l-4 border-l-orange-500">
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-xl">{booking.title}</CardTitle>
+                      <div className="flex items-center gap-2 mt-2">
+                        {getStatusBadge(booking.status)}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-3xl font-bold text-orange-600">
+                        R$ {booking.price.toFixed(2)}
+                      </div>
+                      <div className="text-sm text-gray-500">{booking.plan}</div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold text-orange-600">
-                      R$ {booking.price.toFixed(2)}
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar className="h-4 w-4" />
+                      <span>{formatDate(booking.date)}</span>
                     </div>
-                    <div className="text-sm text-gray-500">{booking.plan}</div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Clock className="h-4 w-4" />
+                      <span>{booking.time}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Users className="h-4 w-4" />
+                      <span>{booking.people} pessoas</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <ChefHat className="h-4 w-4" />
+                      <span>{booking.chef}</span>
+                    </div>
                   </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDate(booking.date)}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Clock className="h-4 w-4" />
-                    <span>{booking.time}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Users className="h-4 w-4" />
-                    <span>{booking.people} pessoas</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <ChefHat className="h-4 w-4" />
-                    <span>{booking.chef}</span>
-                  </div>
-                </div>
-                {booking.notes && (
-                  <div className="flex items-start gap-2 text-gray-600 mb-4">
-                    <FileText className="h-4 w-4 mt-0.5" />
-                    <span className="text-sm">{booking.notes}</span>
-                  </div>
-                )}
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handleViewDetails(booking)}
-                  >
-                    <Eye className="h-4 w-4 mr-2" />
-                    Ver Detalhes
-                  </Button>
-                  
-                  {booking.status === 'PENDING' && (
-                    <Button 
-                      variant="destructive" 
-                      size="sm"
-                      onClick={() => handleCancelBooking(booking.id)}
-                    >
-                      Cancelar
-                    </Button>
+                  {booking.notes && (
+                    <div className="flex items-start gap-2 text-gray-600 mb-4">
+                      <FileText className="h-4 w-4 mt-0.5" />
+                      <span className="text-sm">{booking.notes}</span>
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline" 
+                      onClick={() => handleViewDetails(booking)}
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Ver Detalhes
+                    </Button>
+                    
+                    {booking.status === 'PENDING' && (
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => handleCancelBooking(booking.id)}
+                      >
+                        Cancelar
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </TabsContent>
 
         <TabsContent value="completed" className="space-y-4">

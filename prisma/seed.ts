@@ -72,6 +72,7 @@ async function main() {
         description: '1 refeição personalizada',
         duration: 1,
         price: 150.0,
+        discount: 0.0, // Sem desconto
         isActive: true,
       },
     }),
@@ -84,6 +85,7 @@ async function main() {
         description: '4 refeições por mês',
         duration: 30,
         price: 520.0,
+        discount: 15.0, // 15% de desconto
         isActive: true,
       },
     }),
@@ -96,6 +98,7 @@ async function main() {
         description: '12 refeições por trimestre',
         duration: 90,
         price: 1350.0,
+        discount: 25.0, // 25% de desconto
         isActive: true,
       },
     }),

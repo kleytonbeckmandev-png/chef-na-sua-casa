@@ -66,6 +66,7 @@ model Plan {
   description String
   duration    Int      // em dias
   price       Float
+  discount    Float    @default(0) // desconto em porcentagem
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt

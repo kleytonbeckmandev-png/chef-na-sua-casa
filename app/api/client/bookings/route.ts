@@ -47,10 +47,16 @@ const mockBookings = [
 ]
 
 const mockMenus = [
-  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos' },
-  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas' },
-  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional' },
-  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais' }
+  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos', price: 50 },
+  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas', price: 70 },
+  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional', price: 45 },
+  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais', price: 60 }
+]
+
+const mockPlans = [
+  { id: '1', name: 'Avulso', description: '1 refeição', price: 150, duration: 1, discount: 0 },
+  { id: '2', name: 'Mensal', description: '4 refeições por mês', price: 520, duration: 30, discount: 15 },
+  { id: '3', name: 'Trimestral', description: '12 refeições por trimestre', price: 1350, duration: 90, discount: 25 }
 ]
 
 // Função para verificar disponibilidade do chef
@@ -106,11 +112,12 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando GET /api/client/bookings')
     
-    let bookings = []
+    let dbBookings = []
+    let allBookings = []
     
     try {
       // Tentar buscar agendamentos do banco de dados
-      const dbBookings = await prisma.booking.findMany({
+      const dbBookingsResult = await prisma.booking.findMany({
         include: {
           client: {
             select: {
@@ -140,7 +147,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Converter para o formato esperado pelo frontend
-      bookings = dbBookings.map(booking => ({
+      dbBookings = dbBookingsResult.map((booking: any) => ({
         id: booking.id,
         title: booking.menu.name,
         status: booking.status,
@@ -154,19 +161,33 @@ export async function GET(request: NextRequest) {
         plan: booking.plan.name
       }))
 
-      console.log('✅ Retornando agendamentos do banco:', bookings.length)
+      console.log('✅ Agendamentos do banco:', dbBookings.length)
       
     } catch (dbError) {
-      console.log('⚠️ Erro ao acessar banco, usando dados mock:', dbError)
-      
-      // Se o banco falhar, usar dados mock
-      bookings = mockBookings
-      console.log('✅ Retornando agendamentos mock:', bookings.length)
+      console.log('⚠️ Erro ao acessar banco:', dbError)
+      dbBookings = []
     }
+
+    // Sempre incluir dados mock para garantir que novos agendamentos apareçam
+    console.log('🔄 Combinando dados do banco com dados mock')
+    
+    // Criar um mapa dos IDs do banco para evitar duplicatas
+    const dbIds = new Set(dbBookings.map((b: any) => b.id))
+    
+    // Adicionar dados mock que não estão no banco
+    const mockOnlyBookings = mockBookings.filter((b: any) => !dbIds.has(b.id))
+    
+    // Combinar dados do banco com dados mock únicos
+    allBookings = [...dbBookings, ...mockOnlyBookings]
+    
+    console.log('📊 Total de agendamentos:', allBookings.length)
+    console.log('  - Banco:', dbBookings.length)
+    console.log('  - Mock únicos:', mockOnlyBookings.length)
 
     return NextResponse.json({
       success: true,
-      bookings: bookings
+      bookings: allBookings,
+      usingMockData: dbBookings.length === 0
     })
 
   } catch (error) {
@@ -175,7 +196,8 @@ export async function GET(request: NextRequest) {
     // Em caso de erro geral, retornar dados mock
     return NextResponse.json({
       success: true,
-      bookings: mockBookings
+      bookings: mockBookings,
+      usingMockData: true
     })
   }
 }
@@ -368,15 +390,32 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     console.log('📝 Body recebido:', body)
     
-    const { date, time, people, menuId, chefId, notes, planId } = body
+    const { date, time, people, menuId, chefId, notes, planId, peopleCount } = body
+
+    console.log('🔍 Dados extraídos:', {
+      date, time, people, menuId, chefId, notes, planId, peopleCount
+    })
+
+    // Normalizar o campo people (aceitar tanto 'people' quanto 'peopleCount')
+    const normalizedPeople = people || peopleCount
 
     // Validações
-    if (!date || !time || !people || !menuId || !chefId || !planId) {
+    if (!date || !time || !normalizedPeople || !menuId || !chefId || !planId) {
+      console.log('❌ Validação falhou - campos obrigatórios:', {
+        hasDate: !!date,
+        hasTime: !!time,
+        hasPeople: !!normalizedPeople,
+        hasMenuId: !!menuId,
+        hasChefId: !!chefId,
+        hasPlanId: !!planId
+      })
       return NextResponse.json({
         success: false,
         message: 'Todos os campos obrigatórios devem ser preenchidos'
       }, { status: 400 })
     }
+
+    console.log('✅ Validação de campos obrigatórios aprovada')
 
     // VALIDAÇÃO DE DATA: Para novos agendamentos, não permitir datas passadas
     // Corrigir problema de fuso horário - garantir que a data seja interpretada corretamente
@@ -432,14 +471,27 @@ export async function POST(request: NextRequest) {
       })
 
       if (!menu) {
-        return NextResponse.json({
-          success: false,
-          message: 'Menu não encontrado'
-        }, { status: 400 })
+        throw new Error('Menu não encontrado no banco')
       }
 
-      // Calcular preço total
-      const totalPrice = menu.price * people
+      // Buscar o plano para aplicar o desconto
+      const plan = await prisma.plan.findUnique({
+        where: { id: planId }
+      })
+
+      // Calcular preço total com desconto do plano
+      let totalPrice = menu.price * normalizedPeople
+      if (plan && plan.discount) {
+        totalPrice = totalPrice * (1 - plan.discount / 100)
+      }
+
+      console.log('💰 Cálculo do preço:', {
+        menuPrice: menu.price,
+        people: normalizedPeople,
+        basePrice: menu.price * normalizedPeople,
+        planDiscount: plan?.discount || 0,
+        finalPrice: totalPrice
+      })
 
       // Criar o agendamento
       const newBooking = await prisma.booking.create({
@@ -450,7 +502,7 @@ export async function POST(request: NextRequest) {
           menuId: menuId,
           date: bookingDate,
           time: time,
-          peopleCount: people,
+          peopleCount: normalizedPeople,
           totalPrice: totalPrice,
           notes: notes || '',
           status: 'PENDING'
@@ -502,23 +554,41 @@ export async function POST(request: NextRequest) {
       
       // Se o banco falhar, simular criação com dados mock
       const mockMenu = mockMenus.find(m => m.id === menuId)
-      const mockPrice = mockMenu ? 70.00 : 100.00 // Preço padrão se não encontrar menu
+      const mockPlan = mockPlans.find(p => p.id === planId)
+      
+      if (!mockMenu) {
+        throw new Error('Menu não encontrado nos dados mock')
+      }
+      
+      // Calcular preço total com desconto do plano
+      let mockTotalPrice = mockMenu.price * normalizedPeople
+      if (mockPlan && mockPlan.discount) {
+        mockTotalPrice = mockTotalPrice * (1 - mockPlan.discount / 100)
+      }
+      
+      console.log('💰 Cálculo do preço (mock):', {
+        menuPrice: mockMenu.price,
+        people: normalizedPeople,
+        basePrice: mockMenu.price * normalizedPeople,
+        planDiscount: mockPlan?.discount || 0,
+        finalPrice: mockTotalPrice
+      })
       
       const newId = Date.now().toString()
       
       // Adicionar aos dados mock locais
       const newMockBooking = {
         id: newId,
-        title: mockMenu?.name || 'Cardápio Selecionado',
+        title: mockMenu.name,
         status: 'PENDING',
         date: date,
         time: time,
-        people: people,
+        people: normalizedPeople,
         chef: 'Chef: Maria Costa',
         chefId: chefId,
         notes: notes || '',
-        price: mockPrice * people,
-        plan: 'Plano Selecionado'
+        price: mockTotalPrice,
+        plan: mockPlan?.name || 'Plano Selecionado'
       }
       
       mockBookings.push(newMockBooking)

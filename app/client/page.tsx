@@ -123,9 +123,17 @@ export default function ClientDashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{booking.menu}</p>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm mb-3">
                       <span>{new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')} às {booking.time}</span>
                       <span>{booking.peopleCount} pessoas</span>
+                    </div>
+                    <div className="flex justify-end">
+                      <Link href={`/client/bookings`}>
+                        <Button variant="outline" size="sm">
+                          <Clock className="h-3 w-3 mr-1" />
+                          Ver Detalhes
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -160,9 +168,17 @@ export default function ClientDashboard() {
                       </span>
                     </div>
                     <p className="text-sm text-gray-600 mb-2">{booking.menu}</p>
-                    <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center justify-between text-sm mb-3">
                       <span>{new Date(booking.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
                       <span>{booking.peopleCount} pessoas</span>
+                    </div>
+                    <div className="flex justify-end">
+                      <Link href={`/client/bookings`}>
+                        <Button variant="outline" size="sm">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Ver Detalhes
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 ))}

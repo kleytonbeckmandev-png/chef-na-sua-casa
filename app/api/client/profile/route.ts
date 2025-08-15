@@ -102,9 +102,16 @@ export async function GET(request: NextRequest) {
     // Usar um usuário fixo para teste
     const testUserId = 'cmebe87t70001fjuic53jh9f0'
     
-    const profile = await prisma.clientProfile.findUnique({
-      where: { userId: testUserId }
-    })
+    // Buscar perfil e usuário
+    const [profile, user] = await Promise.all([
+      prisma.clientProfile.findUnique({
+        where: { userId: testUserId }
+      }),
+      prisma.user.findUnique({
+        where: { id: testUserId },
+        select: { name: true, email: true }
+      })
+    ])
 
     if (!profile) {
       console.log('❌ Perfil não encontrado')
@@ -115,10 +122,12 @@ export async function GET(request: NextRequest) {
     }
 
     console.log('✅ Perfil encontrado:', profile)
+    console.log('✅ Usuário encontrado:', user)
 
     return NextResponse.json({
       success: true,
-      profile: profile
+      profile: profile,
+      user: user
     })
 
   } catch (error) {

@@ -47,14 +47,15 @@ export default function ClientProfilePage() {
       if (response.ok) {
         const data = await response.json()
         const apiProfile = data.profile
+        const apiUser = data.user
         
         setProfile(apiProfile)
         console.log('🔄 Carregando dados da API:', apiProfile)
-        console.log('🔄 Nome da sessão:', session?.user?.name)
+        console.log('🔄 Dados do usuário:', apiUser)
         
         const newFormData = {
-          name: session?.user?.name || '',
-          email: session?.user?.email || '',
+          name: apiUser?.name || session?.user?.name || '',
+          email: apiUser?.email || session?.user?.email || '',
           phone: apiProfile.phone,
           address: apiProfile.address,
           dietaryPreferences: apiProfile.dietaryPreferences
@@ -118,11 +119,16 @@ export default function ClientProfilePage() {
         body: JSON.stringify(requestBody),
       })
 
+      console.log('📡 Resposta da API:', response.status, response.statusText)
+
       if (response.ok) {
         const data = await response.json()
         console.log('✅ Resposta da API:', data)
         
         if (data.success) {
+          console.log('🎯 Nome retornado pela API:', data.user?.name)
+          console.log('🎯 Nome no formData antes:', formData.name)
+          
           // Atualizar estado local com dados da API
           setProfile(prevProfile => {
             if (!prevProfile) return prevProfile
@@ -135,17 +141,35 @@ export default function ClientProfilePage() {
             }
           })
           
+          // Atualizar o formData com o nome atualizado
+          setFormData(prev => {
+            const newFormData = {
+              ...prev,
+              name: data.user?.name || formData.name // Usar o nome retornado pela API
+            }
+            console.log('🔄 Novo formData após atualização:', newFormData)
+            return newFormData
+          })
+          
+          // Atualizar a sessão localmente
+          if (session?.user) {
+            session.user.name = data.user?.name || formData.name
+            console.log('🔄 Sessão atualizada:', session.user.name)
+          }
+          
           toast({
             title: "Perfil atualizado!",
-            description: "Suas informações foram salvas com sucesso.",
+            description: `Nome alterado para: ${data.user?.name || formData.name}`,
           })
           
           setIsEditing(false)
           
-          // Forçar refresh da página para mostrar o novo nome
+          // Recarregar o perfil para garantir sincronização
+          console.log('🔄 Recarregando perfil em 500ms...')
           setTimeout(() => {
-            window.location.reload()
-          }, 1000)
+            console.log('🔄 Executando fetchProfile...')
+            fetchProfile()
+          }, 500)
         } else {
           throw new Error(data.message || 'Erro ao atualizar perfil')
         }
@@ -238,7 +262,13 @@ export default function ClientProfilePage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 disabled={!isEditing}
                 className="mt-1"
+                placeholder="Digite seu nome completo"
               />
+              {isEditing && (
+                <p className="text-xs text-blue-600 mt-1">
+                  💡 Digite seu nome completo e clique em "Salvar"
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="email">Email</Label>
