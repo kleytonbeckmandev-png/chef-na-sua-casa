@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Calendar, Clock, Users, ChefHat, CreditCard } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Calendar, Clock, Users, ChefHat, CreditCard, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function NewBookingPage() {
@@ -15,41 +17,102 @@ export default function NewBookingPage() {
   const [formData, setFormData] = useState({
     plan: '',
     menu: '',
-    peopleCount: '',
+    peopleCount: 1,
     date: '',
+    shift: '',
     time: '',
     notes: ''
   })
   const [isLoading, setIsLoading] = useState(false)
+  const [isMenuModalOpen, setIsMenuModalOpen] = useState(false)
+  const [selectedMenuCategory, setSelectedMenuCategory] = useState<any>(null)
+  const [selectedMenuItems, setSelectedMenuItems] = useState<string[]>([])
+  const [shoppingCart, setShoppingCart] = useState<Array<{
+    id: string
+    name: string
+    category: string
+    price: number
+    quantity: number
+  }>>([])
   const router = useRouter()
   const { toast } = useToast()
 
   // Dados mockados para demonstração
   const plans = [
     { id: '1', name: 'Avulso', description: '1 refeição personalizada', price: null, duration: 1, discount: 0 },
-    { id: '2', name: 'Mensal', description: '4 refeições por mês', price: 520, duration: 30, discount: 15 },
+    { id: '2', name: 'Mensal', description: '4 refeições por mês', price: 520, duration: 30, discount: 25 },
     { id: '3', name: 'Trimestral', description: '12 refeições por trimestre', price: 1350, duration: 90, discount: 25 }
   ]
 
   const menus = [
-    { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos', price: 50 },
-    { id: '2', name: 'Culinária Francesa', description: 'Pratos sofisticados da gastronomia francesa', price: 70 },
-    { id: '3', name: 'Culinária Brasileira', description: 'Feijoada, churrasco e pratos regionais', price: 45 },
-    { id: '4', name: 'Culinária Asiática', description: 'Sushi, pad thai e pratos orientais', price: 60 },
-    { id: '5', name: 'Culinária Vegetariana', description: 'Pratos vegetarianos e veganos', price: 40 },
-    { id: '6', name: 'Doces e Sobremesas', description: 'Bolos, tortas e sobremesas especiais', price: 35 }
+    { 
+      id: '1', 
+      name: 'CARNE BOVINA', 
+      description: 'Assado de panela, Cozidão, Carne frita, Churrasco, Estrogonofe, Filé ao molho, Carne assada', 
+      price: 70,
+      subOptions: ['Assado de panela', 'Cozidão', 'Carne frita', 'Churrasco', 'Estrogonofe', 'Filé ao molho', 'Carne assada']
+    },
+    { 
+      id: '2', 
+      name: 'AVES', 
+      description: 'Frango assado, Frango grelhado, Frango ao molho, Peru assado, Pato assado, Frango frito, Frango cozido', 
+      price: 60,
+      subOptions: ['Frango assado', 'Frango grelhado', 'Frango ao molho', 'Peru assado', 'Pato assado', 'Frango frito', 'Frango cozido']
+    },
+    { 
+      id: '3', 
+      name: 'CARNE SUÍNA', 
+      description: 'Porco assado, Lombo assado, Costela assada, Carne de porco grelhada, Porco ao molho, Lombo grelhado', 
+      price: 65,
+      subOptions: ['Porco assado', 'Lombo assado', 'Costela assada', 'Carne de porco grelhada', 'Porco ao molho', 'Lombo grelhado']
+    },
+    { 
+      id: '4', 
+      name: 'PEIXES E FRUTOS DO MAR', 
+      description: 'Salmão grelhado, Atum grelhado, Bacalhau assado, Camarão grelhado, Peixe frito, Peixe ao molho, Mariscos', 
+      price: 75,
+      subOptions: ['Salmão grelhado', 'Atum grelhado', 'Bacalhau assado', 'Camarão grelhado', 'Peixe frito', 'Peixe ao molho', 'Mariscos']
+    },
+    { 
+      id: '5', 
+      name: 'SOBREMESAS', 
+      description: 'Bolo de chocolate, Torta de limão, Pudim, Sorvete caseiro, Mousse, Tiramisu, Cheesecake', 
+      price: 35,
+      subOptions: ['Bolo de chocolate', 'Torta de limão', 'Pudim', 'Sorvete caseiro', 'Mousse', 'Tiramisu', 'Cheesecake']
+    },
+    { 
+      id: '6', 
+      name: 'SALADAS', 
+      description: 'Salada verde, Salada de frutas, Salada de grãos, Salada de legumes, Salada de massas, Salada de quinoa', 
+      price: 40,
+      subOptions: ['Salada verde', 'Salada de frutas', 'Salada de grãos', 'Salada de legumes', 'Salada de massas', 'Salada de quinoa']
+    },
+    { 
+      id: '7', 
+      name: 'OUTRAS', 
+      description: 'Massas, Risotos, Sopas, Pães caseiros, Molhos especiais, Conservas caseiras', 
+      price: 50,
+      subOptions: ['Massas', 'Risotos', 'Sopas', 'Pães caseiros', 'Molhos especiais', 'Conservas caseiras']
+    }
   ]
 
-  const timeSlots = [
-    '08:00', '09:00', '10:00', '11:00', '12:00', '13:00',
-    '14:00', '15:00', '16:00', '17:00', '18:00', '19:00',
-    '20:00', '21:00', '22:00'
+  const shifts = [
+    { id: 'morning', name: 'MANHÃ', start: '08:00', end: '12:00', icon: '🌅' },
+    { id: 'afternoon', name: 'TARDE', start: '14:00', end: '18:00', icon: '🌆' }
   ]
+
+  const timeSlotsByShift = {
+    morning: ['08:00', '09:00', '10:00', '11:00', '12:00'],
+    afternoon: ['14:00', '15:00', '16:00', '17:00', '18:00']
+  }
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }))
     
-    // Validar data em tempo real se for uma data e um plano estiver selecionado
+    if (field === 'shift') {
+      setFormData(prev => ({ ...prev, time: '' }))
+    }
+    
     if (field === 'date' && formData.plan) {
       const validation = validatePlanDate(value, formData.plan)
       if (!validation.valid) {
@@ -58,104 +121,158 @@ export default function NewBookingPage() {
           description: validation.message,
           variant: "destructive",
         })
-        // Resetar a data se for inválida
         setFormData(prev => ({ ...prev, date: '' }))
       }
     }
   }
 
+  const openMenuModal = (menu: any) => {
+    setSelectedMenuCategory(menu)
+    setSelectedMenuItems([])
+    setIsMenuModalOpen(true)
+  }
+
+  const handleMenuItemToggle = (item: string) => {
+    setSelectedMenuItems(prev => 
+      prev.includes(item) 
+        ? prev.filter(i => i !== item)
+        : [...prev, item]
+    )
+  }
+
+  const confirmMenuSelection = () => {
+    if (selectedMenuItems.length === 0) {
+      toast({
+        title: "Seleção necessária",
+        description: "Selecione pelo menos um item do cardápio",
+        variant: "destructive",
+      })
+      return
+    }
+
+    // Adicionar itens selecionados à cesta
+    const newItems = selectedMenuItems.map(item => ({
+      id: `${selectedMenuCategory.id}-${item}`,
+      name: item,
+      category: selectedMenuCategory.name,
+      price: selectedMenuCategory.price,
+      quantity: 1
+    }))
+
+    setShoppingCart(prev => {
+      // Filtrar itens que já existem na cesta
+      const existingItems = prev.filter(cartItem => 
+        !newItems.some(newItem => newItem.id === cartItem.id)
+      )
+      return [...existingItems, ...newItems]
+    })
+
+    setIsMenuModalOpen(false)
+    
+    toast({
+      title: "Itens adicionados à cesta",
+      description: `${selectedMenuItems.length} item(s) adicionado(s) à cesta`,
+      variant: "default",
+    })
+  }
+
+  const removeFromCart = (itemId: string) => {
+    setShoppingCart(prev => prev.filter(item => item.id !== itemId))
+    toast({
+      title: "Item removido",
+      description: "Item removido da cesta",
+      variant: "default",
+    })
+  }
+
+  const updateItemQuantity = (itemId: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      removeFromCart(itemId)
+      return
+    }
+    
+    setShoppingCart(prev => prev.map(item => 
+      item.id === itemId ? { ...item, quantity: newQuantity } : item
+    ))
+  }
+
+  const calculateCartTotal = () => {
+    return shoppingCart.reduce((total, item) => total + (item.price * item.quantity), 0)
+  }
+
+  const getTotalItemsInCart = () => {
+    return shoppingCart.reduce((total, item) => total + item.quantity, 0)
+  }
+
+  const closeMenuModal = () => {
+    setIsMenuModalOpen(false)
+    setSelectedMenuCategory(null)
+    setSelectedMenuItems([])
+  }
+
   const calculateTotal = () => {
     const selectedPlan = plans.find(p => p.id === formData.plan)
-    const selectedMenu = menus.find(m => m.id === formData.menu)
-    const peopleCount = parseInt(formData.peopleCount) || 0
+    const peopleCount = formData.peopleCount || 0
 
-    if (!selectedPlan || !selectedMenu) return 0
+    if (!selectedPlan) return 0
 
-    // Para plano avulso, calcular baseado no cardápio e pessoas
+    // Para plano avulso, calcular baseado na cesta e pessoas
     if (selectedPlan.id === '1') {
-      return selectedMenu.price * peopleCount
+      return calculateCartTotal() * peopleCount
     }
 
     // Para outros planos, aplicar desconto se houver
-    let basePrice = selectedMenu.price * peopleCount
+    let basePrice = calculateCartTotal() * peopleCount
     if (selectedPlan.discount) {
       basePrice = basePrice * (1 - selectedPlan.discount / 100)
     }
     return basePrice
   }
 
-  // Função para validar se a data selecionada está dentro da duração do plano
   const validatePlanDate = (selectedDate: string, planId: string) => {
     const selectedPlan = plans.find(p => p.id === planId)
-    if (!selectedPlan) return { valid: true, message: '' }
+    if (!selectedPlan) return { valid: false, message: "Plano não encontrado" }
 
     const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const bookingDate = new Date(selectedDate + 'T00:00:00')
+    const selected = new Date(selectedDate)
+    const maxDate = new Date(today.getTime() + (selectedPlan.duration * 24 * 60 * 60 * 1000))
 
-    // Apenas validar que não seja uma data passada
-    // A duração do plano não deve limitar quando o usuário pode agendar
-    if (bookingDate < today) {
-      return { 
-        valid: false, 
-        message: `Não é permitido agendar datas passadas.` 
-      }
+    if (selected < today) {
+      return { valid: false, message: "A data não pode ser no passado" }
     }
 
-    return { valid: true, message: '' }
+    if (selected > maxDate) {
+      return { valid: false, message: `A data deve estar dentro dos ${selectedPlan.duration} dias de validade do plano` }
+    }
+
+    return { valid: true, message: "" }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async () => {
+    if (!formData.plan || !formData.menu || !formData.peopleCount || !formData.date || !formData.shift || !formData.time) {
+      toast({
+        title: "Dados incompletos",
+        description: "Por favor, preencha todos os campos obrigatórios",
+        variant: "destructive",
+      })
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      console.log('🚀 Criando novo agendamento...')
-      console.log('📝 Dados do formulário:', formData)
-      console.log('🔍 Validação dos campos:')
-      console.log('  - Plan:', formData.plan ? '✅' : '❌')
-      console.log('  - Menu:', formData.menu ? '✅' : '❌')
-      console.log('  - People:', formData.peopleCount ? '✅' : '❌')
-      console.log('  - Date:', formData.date ? '✅' : '❌')
-      console.log('  - Time:', formData.time ? '✅' : '❌')
-      
-      // Validar dados obrigatórios
-      if (!formData.plan || !formData.menu || !formData.peopleCount || !formData.date || !formData.time) {
-        const missingFields = []
-        if (!formData.plan) missingFields.push('Plano')
-        if (!formData.menu) missingFields.push('Cardápio')
-        if (!formData.peopleCount) missingFields.push('Número de Pessoas')
-        if (!formData.date) missingFields.push('Data')
-        if (!formData.time) missingFields.push('Horário')
-        
-        throw new Error(`Campos obrigatórios não preenchidos: ${missingFields.join(', ')}`)
-      }
-
-      // Validar se a data está dentro da duração do plano
-      const dateValidation = validatePlanDate(formData.date, formData.plan)
-      if (!dateValidation.valid) {
-        throw new Error(dateValidation.message)
-      }
-
-      // Calcular preço total
-      const totalPrice = calculateTotal()
-      console.log('💰 Preço total calculado:', totalPrice)
-
-      // Criar agendamento via API
       const requestBody = {
         planId: formData.plan,
-        menuId: formData.menu,
-        peopleCount: parseInt(formData.peopleCount),
+        peopleCount: formData.peopleCount,
         date: formData.date,
+        shift: formData.shift,
         time: formData.time,
         notes: formData.notes,
-        chefId: 'cmebe87ts0003fjui0b7ejc9k', // ID do chef mockado
-        totalPrice: totalPrice
+        shoppingCart: shoppingCart,
+        totalCartValue: calculateCartTotal(),
+        totalItems: getTotalItemsInCart()
       }
-      
-      console.log('📤 Dados sendo enviados para a API:', requestBody)
-      
+
       const response = await fetch('/api/client/bookings', {
         method: 'POST',
         headers: {
@@ -164,25 +281,20 @@ export default function NewBookingPage() {
         body: JSON.stringify(requestBody),
       })
 
-      console.log('📡 Resposta da API:', response.status, response.statusText)
-
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('❌ Erro da API:', errorData)
         throw new Error(errorData.message || 'Erro ao criar agendamento')
       }
 
       const result = await response.json()
-      console.log('✅ Agendamento criado com sucesso:', result)
-      
+
       toast({
         title: "Sucesso!",
-        description: "Agendamento criado com sucesso! Em breve você receberá a confirmação.",
+        description: "Agendamento criado com sucesso",
+        variant: "default",
       })
-      
-      // Redirecionar para a lista de agendamentos
+
       router.push('/client/bookings')
-      
     } catch (error) {
       console.error('❌ Erro ao criar agendamento:', error)
       toast({
@@ -232,9 +344,6 @@ export default function NewBookingPage() {
                 <div className="text-sm text-gray-600 mt-2">
                   <strong>Validade:</strong> {plan.duration} {plan.duration === 1 ? 'dia' : 'dias'}
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  Plano válido por {plan.duration} {plan.duration === 1 ? 'dia' : 'dias'} após a compra
-                </div>
               </CardContent>
             </Card>
           ))}
@@ -261,11 +370,11 @@ export default function NewBookingPage() {
             <Card 
               key={menu.id} 
               className={`cursor-pointer transition-all ${
-                formData.menu === menu.id 
-                  ? 'ring-2 ring-orange-500 bg-orange-50' 
+                shoppingCart.some(item => item.category === menu.name)
+                  ? 'ring-2 ring-green-500 bg-green-50' 
                   : 'hover:shadow-md'
               }`}
-              onClick={() => handleInputChange('menu', menu.id)}
+              onClick={() => openMenuModal(menu)}
             >
               <CardHeader className="pb-3">
                 <CardTitle className="text-lg">{menu.name}</CardTitle>
@@ -275,11 +384,78 @@ export default function NewBookingPage() {
                 <div className="text-lg font-semibold text-orange-600">
                   R$ {menu.price}/pessoa
                 </div>
+                {shoppingCart.some(item => item.category === menu.name) && (
+                  <div className="mt-2 text-sm text-green-600">
+                    <strong>Itens na cesta: {shoppingCart.filter(item => item.category === menu.name).length}</strong>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
+
+      {/* Cesta de Compras */}
+      {shoppingCart.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-green-700">🛒 Cesta de Compras</h3>
+          <Card className="border-green-200 bg-green-50">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {shoppingCart.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-green-200">
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">{item.name}</div>
+                      <div className="text-sm text-gray-600">{item.category}</div>
+                      <div className="text-sm text-orange-600 font-medium">
+                        R$ {item.price}/pessoa
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateItemQuantity(item.id, item.quantity - 1)}
+                          className="h-8 w-8 p-0"
+                        >
+                          -
+                        </Button>
+                        <span className="w-8 text-center font-medium">{item.quantity}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => updateItemQuantity(item.id, item.quantity + 1)}
+                          className="h-8 w-8 p-0"
+                        >
+                          +
+                        </Button>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFromCart(item.id)}
+                        className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <div className="border-t pt-3">
+                  <div className="flex justify-between items-center text-lg font-bold text-green-700">
+                    <span>Total da Cesta:</span>
+                    <span>R$ {calculateCartTotal().toFixed(2)}</span>
+                  </div>
+                  <div className="text-sm text-green-600">
+                    {getTotalItemsInCart()} item(s) selecionado(s)
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
@@ -295,8 +471,7 @@ export default function NewBookingPage() {
           />
         </div>
         
-        {/* Mostrar preço calculado para plano avulso */}
-        {formData.plan === '1' && formData.menu && formData.peopleCount && (
+        {formData.plan === '1' && shoppingCart.length > 0 && formData.peopleCount && (
           <div className="space-y-2">
             <Label>Preço Calculado</Label>
             <div className="p-3 bg-orange-50 border border-orange-200 rounded-lg">
@@ -304,7 +479,7 @@ export default function NewBookingPage() {
                 R$ {calculateTotal().toFixed(2)}
               </div>
               <div className="text-sm text-gray-600">
-                {formData.peopleCount} pessoa{formData.peopleCount > 1 ? 's' : ''} × R$ {menus.find(m => m.id === formData.menu)?.price}/pessoa
+                {formData.peopleCount} pessoa{(formData.peopleCount as number) > 1 ? 's' : ''} × R$ {calculateCartTotal().toFixed(2)}/pessoa
               </div>
             </div>
           </div>
@@ -317,7 +492,8 @@ export default function NewBookingPage() {
         </Button>
         <Button 
           onClick={() => setStep(3)}
-          disabled={!formData.menu || !formData.peopleCount}
+          disabled={shoppingCart.length === 0 || !formData.peopleCount}
+          className={shoppingCart.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}
         >
           Continuar
         </Button>
@@ -329,7 +505,7 @@ export default function NewBookingPage() {
     <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-4">Agende Data e Horário</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="date">Data *</Label>
             <Input
@@ -346,28 +522,50 @@ export default function NewBookingPage() {
               onChange={(e) => handleInputChange('date', e.target.value)}
               required
             />
-            {formData.plan && (
-              <div className="text-xs text-gray-500">
-                <strong>Dica:</strong> Você pode agendar para qualquer data futura com o plano {plans.find(p => p.id === formData.plan)?.name}
-              </div>
-            )}
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="time">Horário *</Label>
-            <Select value={formData.time} onValueChange={(value) => handleInputChange('time', value)}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecione o horário" />
-              </SelectTrigger>
-              <SelectContent>
-                {timeSlots.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Turno *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {shifts.map((shift) => (
+                <div
+                  key={shift.id}
+                  className={`p-3 border-2 rounded-lg cursor-pointer transition-colors ${
+                    formData.shift === shift.id
+                      ? 'border-orange-500 bg-orange-50'
+                      : 'border-gray-200 hover:border-gray-300'
+                  }`}
+                  onClick={() => handleInputChange('shift', shift.id)}
+                >
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg">{shift.icon}</span>
+                    <div>
+                      <div className="font-medium">{shift.name}</div>
+                      <div className="text-sm text-gray-600">{shift.start} - {shift.end}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
+          
+          {formData.shift && (
+            <div className="space-y-2">
+              <Label htmlFor="time">Horário *</Label>
+              <Select value={formData.time} onValueChange={(value) => handleInputChange('time', value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione o horário" />
+                </SelectTrigger>
+                <SelectContent>
+                  {timeSlotsByShift[formData.shift as keyof typeof timeSlotsByShift]?.map((time) => (
+                    <SelectItem key={time} value={time}>
+                      {time}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
       </div>
 
@@ -387,7 +585,7 @@ export default function NewBookingPage() {
         </Button>
         <Button 
           onClick={() => setStep(4)}
-          disabled={!formData.date || !formData.time}
+          disabled={!formData.date || !formData.shift || !formData.time}
         >
           Continuar
         </Button>
@@ -406,10 +604,26 @@ export default function NewBookingPage() {
                 <span className="font-medium">Plano:</span>
                 <span>{plans.find(p => p.id === formData.plan)?.name}</span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="font-medium">Cardápio:</span>
-                <span>{menus.find(m => m.id === formData.menu)?.name}</span>
+              <div className="flex justify-between items-start">
+                <span className="font-medium">Cardápio Selecionado:</span>
+                <div className="text-right">
+                  <div className="text-sm text-gray-600">
+                    {shoppingCart.length} categoria(s) com {getTotalItemsInCart()} item(s)
+                  </div>
+                </div>
               </div>
+              {shoppingCart.length > 0 && (
+                <div className="flex justify-between items-start">
+                  <span className="font-medium">Itens da Cesta:</span>
+                  <div className="text-right max-w-xs">
+                    {shoppingCart.map((item, index) => (
+                      <div key={index} className="text-sm text-gray-600">
+                        • {item.name} ({item.category}) - Qtd: {item.quantity}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <span className="font-medium">Pessoas:</span>
                 <span>{formData.peopleCount}</span>
@@ -417,6 +631,13 @@ export default function NewBookingPage() {
               <div className="flex justify-between items-center">
                 <span className="font-medium">Data:</span>
                 <span>{new Date(formData.date + 'T00:00:00').toLocaleDateString('pt-BR')}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="font-medium">Turno:</span>
+                <span className="flex items-center space-x-2">
+                  <span>{shifts.find(s => s.id === formData.shift)?.icon}</span>
+                  <span>{shifts.find(s => s.id === formData.shift)?.name}</span>
+                </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="font-medium">Horário:</span>
@@ -435,14 +656,17 @@ export default function NewBookingPage() {
                 </div>
                 {formData.plan === '1' && (
                   <div className="text-sm text-gray-600 mt-2">
-                    {formData.peopleCount} pessoa{formData.peopleCount > 1 ? 's' : ''} × R$ {menus.find(m => m.id === formData.menu)?.price}/pessoa
+                    {formData.peopleCount} pessoa{(formData.peopleCount as number) > 1 ? 's' : ''} × R$ {menus.find(m => m.id === formData.menu)?.price}/pessoa
                   </div>
                 )}
-                {formData.plan !== '1' && plans.find(p => p.id === formData.plan)?.discount && plans.find(p => p.id === formData.plan)?.discount > 0 && (
+                {formData.plan !== '1' && (() => {
+                  const plan = plans.find(p => p.id === formData.plan)
+                  return plan?.discount && plan.discount > 0 ? (
                   <div className="text-sm text-green-600 mt-2">
-                    {plans.find(p => p.id === formData.plan)?.discount}% de desconto aplicado
+                      {plan.discount}% de desconto aplicado
                   </div>
-                )}
+                  ) : null
+                })()}
               </div>
             </div>
           </CardContent>
@@ -473,7 +697,6 @@ export default function NewBookingPage() {
         </p>
       </div>
 
-      {/* Progress Steps */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           {[1, 2, 3, 4].map((stepNumber) => (
@@ -501,11 +724,83 @@ export default function NewBookingPage() {
         </div>
       </div>
 
-      {/* Step Content */}
       {step === 1 && renderStep1()}
       {step === 2 && renderStep2()}
       {step === 3 && renderStep3()}
       {step === 4 && renderStep4()}
+
+      <Dialog open={isMenuModalOpen} onOpenChange={setIsMenuModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>Selecione os Itens do Cardápio</span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={closeMenuModal}
+                className="h-8 w-8 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <div className="text-sm text-gray-600 mt-2">
+              Selecione os itens desejados desta categoria. Eles serão adicionados à sua cesta de compras.
+            </div>
+          </DialogHeader>
+          
+          {selectedMenuCategory && (
+            <div className="space-y-4">
+              <div className="p-4 bg-orange-50 rounded-lg">
+                <h3 className="text-lg font-semibold text-orange-800 mb-2">
+                  {selectedMenuCategory.name}
+                </h3>
+                <p className="text-orange-700 text-sm">
+                  {selectedMenuCategory.description}
+                </p>
+                <div className="mt-2 text-orange-800 font-medium">
+                  R$ {selectedMenuCategory.price}/pessoa
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <Label className="text-base font-medium">
+                  Selecione os itens desejados:
+                </Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {selectedMenuCategory.subOptions.map((item: string) => (
+                    <div key={item} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={item}
+                        checked={selectedMenuItems.includes(item)}
+                        onCheckedChange={() => handleMenuItemToggle(item)}
+                      />
+                      <Label
+                        htmlFor={item}
+                        className="text-sm font-normal cursor-pointer"
+                      >
+                        {item}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={closeMenuModal}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={confirmMenuSelection}
+              disabled={selectedMenuItems.length === 0}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              Adicionar à Cesta ({selectedMenuItems.length})
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

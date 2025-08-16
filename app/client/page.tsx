@@ -9,6 +9,18 @@ import Link from 'next/link'
 export default function ClientDashboard() {
   const { data: session } = useSession()
 
+  // Verificar se a sessão está carregada
+  if (!session?.user?.name) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando dados do usuário...</p>
+        </div>
+      </div>
+    )
+  }
+
   // Dados mockados para demonstração
   const upcomingBookings = [
     {

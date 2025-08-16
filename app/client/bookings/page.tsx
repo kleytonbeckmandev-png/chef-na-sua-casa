@@ -28,47 +28,50 @@ interface Booking {
 const mockBookings: Booking[] = [
   {
     id: '1',
-    title: 'Culinária Italiana',
+    title: 'CARNE BOVINA',
     status: 'CONFIRMED',
     date: '2024-01-14',
     time: '19:00',
     people: 4,
     chef: 'Chef: Maria Costa',
-    notes: 'Cliente prefere massas sem glúten',
-    price: 200.00,
+    notes: 'Cliente prefere carne bem passada',
+    price: 280.00,
     plan: 'Avulso'
   },
   {
     id: '2',
-    title: 'Culinária Francesa',
+    title: 'AVES',
     status: 'PENDING',
     date: '2024-01-21',
     time: '18:00',
     people: 2,
     chef: 'Chef: Maria Costa',
     notes: 'Aniversário de casamento',
-    price: 140.00,
+    price: 240.00,
     plan: 'Mensal'
   },
   {
     id: '3',
-    title: 'Culinária Brasileira',
+    title: 'PEIXES E FRUTOS DO MAR',
     status: 'PENDING',
     date: '2025-10-24',
     time: '22:01',
     people: 20,
     chef: 'Chef: Maria Costa',
     notes: 'Aniversário de casamento 50 anos',
-    price: 140.00,
+    price: 1500.00,
     plan: 'Mensal'
   }
 ]
 
 const mockMenus = [
-  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos' },
-  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas' },
-  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional' },
-  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais' }
+  { id: '1', name: 'CARNE BOVINA', description: 'Assado de panela, Cozidão, Carne frita, Churrasco, Estrogonofe, Filé ao molho, Carne assada' },
+  { id: '2', name: 'AVES', description: 'Frango assado, Frango grelhado, Frango ao molho, Peru assado, Pato assado, Frango frito, Frango cozido' },
+  { id: '3', name: 'CARNE SUÍNA', description: 'Porco assado, Lombo assado, Costela assada, Carne de porco grelhada, Porco ao molho, Lombo grelhado' },
+  { id: '4', name: 'PEIXES E FRUTOS DO MAR', description: 'Salmão grelhado, Atum grelhado, Bacalhau assado, Camarão grelhado, Peixe frito, Peixe ao molho, Mariscos' },
+  { id: '5', name: 'SOBREMESAS', description: 'Bolo de chocolate, Torta de limão, Pudim, Sorvete caseiro, Mousse, Tiramisu, Cheesecake' },
+  { id: '6', name: 'SALADAS', description: 'Salada verde, Salada de frutas, Salada de grãos, Salada de legumes, Salada de massas, Salada de quinoa' },
+  { id: '7', name: 'OUTRAS', description: 'Massas, Risotos, Sopas, Pães caseiros, Molhos especiais, Conservas caseiras' }
 ]
 
 export default function ClientBookingsPage() {

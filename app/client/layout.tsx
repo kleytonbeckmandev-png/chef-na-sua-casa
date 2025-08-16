@@ -23,8 +23,17 @@ export default function ClientLayout({
       return
     }
 
-    if ((session.user as any).role !== 'CLIENT') {
-      router.push('/')
+    // Verificar se o usuário tem role válido
+    try {
+      const userRole = (session.user as any)?.role
+      if (userRole && userRole !== 'CLIENT') {
+        router.push('/')
+        return
+      }
+    } catch (error) {
+      console.error('Erro ao verificar role do usuário:', error)
+      // Em caso de erro, redirecionar para login
+      router.push('/auth/login')
       return
     }
   }, [session, status, router])

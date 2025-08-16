@@ -7,20 +7,20 @@ const prisma = new PrismaClient()
 const mockBookings = [
   {
     id: '1',
-    title: 'Culinária Italiana',
+    title: 'CARNE BOVINA',
     status: 'CONFIRMED',
     date: '2024-01-14',
     time: '19:00',
     people: 4,
     chef: 'Chef: Maria Costa',
     chefId: 'chef-1',
-    notes: 'Cliente prefere massas sem glúten',
-    price: 200.00,
+    notes: 'Cliente prefere carne bem passada',
+    price: 280.00,
     plan: 'Avulso'
   },
   {
     id: '2',
-    title: 'Culinária Francesa',
+    title: 'AVES',
     status: 'PENDING',
     date: '2024-01-21',
     time: '18:00',
@@ -28,12 +28,12 @@ const mockBookings = [
     chef: 'Chef: Maria Costa',
     chefId: 'chef-1',
     notes: 'Aniversário de casamento',
-    price: 140.00,
+    price: 240.00,
     plan: 'Mensal'
   },
   {
     id: '3',
-    title: 'Culinária Brasileira',
+    title: 'PEIXES E FRUTOS DO MAR',
     status: 'PENDING',
     date: '2025-10-24',
     time: '22:01',
@@ -41,16 +41,19 @@ const mockBookings = [
     chef: 'Chef: Maria Costa',
     chefId: 'chef-1',
     notes: 'Aniversário de casamento 50 anos',
-    price: 140.00,
+    price: 1500.00,
     plan: 'Mensal'
   }
 ]
 
 const mockMenus = [
-  { id: '1', name: 'Culinária Italiana', description: 'Massas, risotos e pratos tradicionais italianos', price: 50 },
-  { id: '2', name: 'Culinária Francesa', description: 'Cuisine française com técnicas refinadas', price: 70 },
-  { id: '3', name: 'Culinária Brasileira', description: 'Pratos típicos da nossa culinária regional', price: 45 },
-  { id: '4', name: 'Culinária Asiática', description: 'Sushi, curry e pratos orientais', price: 60 }
+  { id: '1', name: 'CARNE BOVINA', description: 'Assado de panela, Cozidão, Carne frita, Churrasco, Estrogonofe, Filé ao molho, Carne assada', price: 70 },
+  { id: '2', name: 'AVES', description: 'Frango assado, Frango grelhado, Frango ao molho, Peru assado, Pato assado, Frango frito, Frango cozido', price: 60 },
+  { id: '3', name: 'CARNE SUÍNA', description: 'Porco assado, Lombo assado, Costela assada, Carne de porco grelhada, Porco ao molho, Lombo grelhado', price: 65 },
+  { id: '4', name: 'PEIXES E FRUTOS DO MAR', description: 'Salmão grelhado, Atum grelhado, Bacalhau assado, Camarão grelhado, Peixe frito, Peixe ao molho, Mariscos', price: 75 },
+  { id: '5', name: 'SOBREMESAS', description: 'Bolo de chocolate, Torta de limão, Pudim, Sorvete caseiro, Mousse, Tiramisu, Cheesecake', price: 35 },
+  { id: '6', name: 'SALADAS', description: 'Salada verde, Salada de frutas, Salada de grãos, Salada de legumes, Salada de massas, Salada de quinoa', price: 40 },
+  { id: '7', name: 'OUTRAS', description: 'Massas, Risotos, Sopas, Pães caseiros, Molhos especiais, Conservas caseiras', price: 50 }
 ]
 
 const mockPlans = [
@@ -59,51 +62,112 @@ const mockPlans = [
   { id: '3', name: 'Trimestral', description: '12 refeições por trimestre', price: 1350, duration: 90, discount: 25 }
 ]
 
-// Função para verificar disponibilidade do chef
+// Dados mock da disponibilidade do chef (em produção viria do banco)
+const mockChefAvailability = {
+  monday: { 
+    morning: { start: '08:00', end: '12:00', available: true }, 
+    afternoon: { start: '14:00', end: '18:00', available: true } 
+  },
+  tuesday: { 
+    morning: { start: '08:00', end: '12:00', available: true }, 
+    afternoon: { start: '14:00', end: '18:00', available: true } 
+  },
+  wednesday: { 
+    morning: { start: '08:00', end: '12:00', available: true }, 
+    afternoon: { start: '14:00', end: '18:00', available: true } 
+  },
+  thursday: { 
+    morning: { start: '08:00', end: '12:00', available: true }, 
+    afternoon: { start: '14:00', end: '18:00', available: true } 
+  },
+  friday: { 
+    morning: { start: '08:00', end: '12:00', available: true }, 
+    afternoon: { start: '14:00', end: '18:00', available: true } 
+  },
+  saturday: { 
+    morning: { start: '09:00', end: '13:00', available: true }, 
+    afternoon: { start: '15:00', end: '19:00', available: false } 
+  },
+  sunday: { 
+    morning: { start: '10:00', end: '14:00', available: false }, 
+    afternoon: { start: '16:00', end: '20:00', available: false } 
+  }
+}
+
+// Função para verificar disponibilidade do chef por turnos
 function checkChefAvailability(chefId: string, date: string, time: string, excludeBookingId?: string) {
-  // TEMPORARIAMENTE: Simular verificação de disponibilidade
-  // Em produção, isso seria uma consulta ao banco de dados
-  
-  // Simular horários de trabalho do chef (8h às 22h)
-  const selectedTime = new Date(`2000-01-01T${time}`)
-  const workStart = new Date('2000-01-01T08:00')
-  const workEnd = new Date('2000-01-01T22:00')
-  
-  // Verificar se o horário está dentro do expediente
-  if (selectedTime < workStart || selectedTime > workEnd) {
+  try {
+    // Determinar o turno baseado no horário
+    const selectedTime = new Date(`2000-01-01T${time}`)
+    const morningStart = new Date('2000-01-01T08:00')
+    const morningEnd = new Date('2000-01-01T12:00')
+    const afternoonStart = new Date('2000-01-01T14:00')
+    const afternoonEnd = new Date('2000-01-01T18:00')
+    
+    let shift: 'morning' | 'afternoon'
+    
+    if (selectedTime >= morningStart && selectedTime <= morningEnd) {
+      shift = 'morning'
+    } else if (selectedTime >= afternoonStart && selectedTime <= afternoonEnd) {
+      shift = 'afternoon'
+    } else {
     return {
       available: false,
-      reason: 'Horário fora do expediente de trabalho (8h às 22h)'
+        reason: 'Horário fora dos turnos disponíveis (MANHÃ: 8h-12h, TARDE: 14h-18h)'
+      }
     }
-  }
-  
-  // Simular agendamentos existentes para o chef na data
-  const existingBookings = [
-    { time: '12:00', duration: 2 }, // Almoço das 12h às 14h
-    { time: '19:00', duration: 2 }, // Jantar das 19h às 21h
-  ]
-  
-  // Verificar conflitos de horário
-  for (const booking of existingBookings) {
-    const bookingStart = new Date(`2000-01-01T${booking.time}`)
-    const bookingEnd = new Date(`2000-01-01T${booking.time}`)
-    bookingEnd.setHours(bookingEnd.getHours() + booking.duration)
     
-    const selectedEnd = new Date(selectedTime)
-    selectedEnd.setHours(selectedEnd.getHours() + 2) // Assumir 2h de duração
+    // Obter o dia da semana
+    const dayOfWeek = new Date(date).getDay()
+    const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayName = dayNames[dayOfWeek]
     
-    // Verificar se há sobreposição
-    if (selectedTime < bookingEnd && selectedEnd > bookingStart) {
+    // Verificar se o turno está disponível neste dia
+    const dayAvailability = mockChefAvailability[dayName as keyof typeof mockChefAvailability]
+    if (!dayAvailability) {
+      return { available: false, reason: 'Dia não configurado na disponibilidade' }
+    }
+    
+    const shiftAvailability = dayAvailability[shift]
+    if (!shiftAvailability.available) {
+      return { available: false, reason: `Turno da ${shift === 'morning' ? 'MANHÃ' : 'TARDE'} não disponível neste dia` }
+    }
+    
+    // Verificar se já existe um agendamento para este turno nesta data
+    const existingBookingsForShift = mockBookings.filter(booking => 
+      booking.date === date && 
+      booking.status !== 'CANCELLED' &&
+      booking.status !== 'COMPLETED'
+    )
+    
+    // Se já existe um agendamento para este turno, não permitir outro
+    if (existingBookingsForShift.length > 0) {
       return {
         available: false,
-        reason: `Conflito com agendamento existente das ${booking.time} às ${bookingEnd.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+        reason: `Turno da ${shift === 'morning' ? 'MANHÃ' : 'TARDE'} já possui agendamento para esta data`
       }
+    }
+    
+    // Verificar se o horário está dentro do turno disponível
+    const shiftStart = new Date(`2000-01-01T${shiftAvailability.start}`)
+    const shiftEnd = new Date(`2000-01-01T${shiftAvailability.end}`)
+    
+    if (selectedTime < shiftStart || selectedTime > shiftEnd) {
+      return {
+        available: false,
+        reason: `Horário deve estar entre ${shiftAvailability.start} e ${shiftAvailability.end} para o turno da ${shift === 'morning' ? 'MANHÃ' : 'TARDE'}`
     }
   }
   
   return {
     available: true,
-    reason: 'Horário disponível'
+      shift: shift,
+      shiftInfo: shiftAvailability
+    }
+    
+  } catch (error) {
+    console.error('Erro ao verificar disponibilidade:', error)
+    return { available: false, reason: 'Erro interno ao verificar disponibilidade' }
   }
 }
 
@@ -112,8 +176,32 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🔍 Iniciando GET /api/client/bookings')
     
-    let dbBookings = []
-    let allBookings = []
+    let dbBookings: Array<{
+      id: string
+      title: string
+      status: string
+      date: string
+      time: string
+      people: number
+      chef: string
+      chefId: string
+      notes: string
+      price: number
+      plan: string
+    }> = []
+    let allBookings: Array<{
+      id: string
+      title: string
+      status: string
+      date: string
+      time: string
+      people: number
+      chef: string
+      chefId: string
+      notes: string
+      price: number
+      plan: string
+    }> = []
     
     try {
       // Tentar buscar agendamentos do banco de dados
@@ -147,7 +235,7 @@ export async function GET(request: NextRequest) {
       })
 
       // Converter para o formato esperado pelo frontend
-      dbBookings = dbBookingsResult.map((booking: any) => ({
+      dbBookings = dbBookingsResult.map((booking) => ({
         id: booking.id,
         title: booking.menu.name,
         status: booking.status,
@@ -172,10 +260,10 @@ export async function GET(request: NextRequest) {
     console.log('🔄 Combinando dados do banco com dados mock')
     
     // Criar um mapa dos IDs do banco para evitar duplicatas
-    const dbIds = new Set(dbBookings.map((b: any) => b.id))
+    const dbIds = new Set(dbBookings.map((b) => b.id))
     
     // Adicionar dados mock que não estão no banco
-    const mockOnlyBookings = mockBookings.filter((b: any) => !dbIds.has(b.id))
+    const mockOnlyBookings = mockBookings.filter((b) => !dbIds.has(b.id))
     
     // Combinar dados do banco com dados mock únicos
     allBookings = [...dbBookings, ...mockOnlyBookings]
